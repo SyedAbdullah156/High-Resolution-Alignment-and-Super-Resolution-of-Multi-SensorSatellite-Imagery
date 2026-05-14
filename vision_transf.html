@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vision Transformer Visualizer</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #111833;
+      --panel-2: #162044;
+      --text: #eaf0ff;
+      --muted: #9eb0da;
+      --accent: #7c8cff;
+      --accent-2: #7cf0c8;
+      --warn: #ffd166;
+      --danger: #ff7d7d;
+      --line: rgba(255,255,255,0.12);
+      --shadow: 0 20px 50px rgba(0,0,0,0.35);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(124,140,255,0.20), transparent 32%),
+        radial-gradient(circle at top right, rgba(124,240,200,0.12), transparent 26%),
+        linear-gradient(180deg, #070b15, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: space-between;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      max-width: 900px;
+      line-height: 1.5;
+    }
+
+    .hero-note {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .controls .group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .controls label {
+      color: var(--muted);
+      font-size: 14px;
+      margin-right: 6px;
+    }
+
+    button, select, input[type="range"] {
+      font: inherit;
+    }
+
+    button, .pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button.active {
+      background: linear-gradient(135deg, rgba(124,140,255,0.28), rgba(124,240,200,0.16));
+      border-color: rgba(124,140,255,0.5);
+    }
+
+    select {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 12px;
+      outline: none;
+    }
+
+    input[type="range"] {
+      width: 220px;
+      accent-color: var(--accent);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: rgba(17,24,51,0.82);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card h2 {
+      margin: 0;
+      padding: 18px 18px 10px;
+      font-size: 20px;
+    }
+
+    .card .desc {
+      padding: 0 18px 16px;
+      color: var(--muted);
+      line-height: 1.55;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .visual-body {
+      padding: 18px;
+    }
+
+    .stage-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      font-size: 13px;
+      padding: 8px 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .pill.on {
+      color: var(--text);
+      border-color: rgba(124,140,255,0.4);
+      background: rgba(124,140,255,0.16);
+    }
+
+    .image-area {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .image-frame {
+      position: relative;
+      width: min(100%, 680px);
+      aspect-ratio: 1 / 1;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #0e1630;
+      margin: 0 auto;
+    }
+
+    .img-grid {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      width: 100%;
+      height: 100%;
+      transition: transform .35s ease, filter .35s ease;
+    }
+
+    .img-cell {
+      position: relative;
+      border: 0;
+      transition: transform .25s ease, opacity .25s ease, filter .25s ease;
+    }
+
+    .img-cell.dimmed { opacity: 0.34; filter: saturate(0.7); }
+
+    .patch-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: repeat(var(--patches), 1fr);
+      grid-template-rows: repeat(var(--patches), 1fr);
+    }
+
+    .patch-box {
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.02);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: rgba(255,255,255,0.78);
+      transition: background .25s ease, transform .25s ease, border-color .25s ease;
+    }
+
+    .patch-box.highlight {
+      background: rgba(124,140,255,0.18);
+      border-color: rgba(124,140,255,0.55);
+    }
+
+    .token-stream {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+      justify-content: center;
+      min-height: 130px;
+    }
+
+    .token {
+      min-width: 84px;
+      padding: 12px 12px 10px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+      text-align: center;
+      transition: transform .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+      position: relative;
+    }
+
+    .token .tag {
+      display: inline-block;
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .token .value {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .token .mini {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .token.cls {
+      background: linear-gradient(135deg, rgba(255,209,102,0.20), rgba(124,140,255,0.16));
+      border-color: rgba(255,209,102,0.36);
+    }
+
+    .token.positioned {
+      box-shadow: inset 0 0 0 1px rgba(124,240,200,0.2);
+    }
+
+    .token.attending {
+      transform: translateY(-2px);
+      border-color: rgba(124,240,200,0.48);
+      background: rgba(124,240,200,0.10);
+    }
+
+    .mini-graph {
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+      margin-top: 14px;
+    }
+
+    .bars {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      align-items: end;
+      height: 180px;
+    }
+
+    .bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+      justify-content: end;
+    }
+
+    .bar {
+      width: 100%;
+      min-height: 16px;
+      border-radius: 14px 14px 6px 6px;
+      background: linear-gradient(180deg, rgba(124,140,255,0.95), rgba(124,240,200,0.78));
+      height: var(--h);
+      position: relative;
+      transition: height .35s ease, opacity .25s ease;
+    }
+
+    .bar .label {
+      position: absolute;
+      top: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .bar-wrap .pct {
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .step {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 10px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .step strong { color: var(--text); font-size: 14px; }
+    .step.on {
+      color: var(--text);
+      border-color: rgba(124,140,255,0.45);
+      background: rgba(124,140,255,0.14);
+    }
+
+    .explain {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-right: 7px;
+      vertical-align: middle;
+    }
+
+    .dot.accent { background: var(--accent); }
+    .dot.green { background: var(--accent-2); }
+    .dot.gold { background: var(--warn); }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 640px) {
+      .controls { align-items: stretch; }
+      .bars { height: 150px; }
+      .flow { grid-template-columns: repeat(2, 1fr); }
+      input[type="range"] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Vision Transformer Visualizer</h1>
+        <div class="subtitle">
+          Watch an image turn into patches, patches turn into tokens, tokens get positional information, and the CLS token gather the final meaning.
+        </div>
+      </div>
+      <div class="hero-note">Move through the pipeline and see how ViT thinks.</div>
+    </header>
+
+    <div class="controls">
+      <div class="group">
+        <label for="patchSize">Patch size</label>
+        <select id="patchSize">
+          <option value="2">2 × 2</option>
+          <option value="3" selected>3 × 3</option>
+          <option value="4">4 × 4</option>
+        </select>
+      </div>
+
+      <div class="group">
+        <label for="stage">Stage</label>
+        <input id="stage" type="range" min="0" max="5" step="1" value="0" />
+      </div>
+
+      <div class="group">
+        <button data-stage="0" class="active">1. Image</button>
+        <button data-stage="1">2. Patches</button>
+        <button data-stage="2">3. Embeddings</button>
+        <button data-stage="3">4. Position</button>
+        <button data-stage="4">5. Attention</button>
+        <button data-stage="5">6. CLS</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <section class="card">
+        <h2>Image to tokens</h2>
+        <div class="desc">
+          A vision transformer does not scan with convolutions first. It cuts the image into chunks, turns each chunk into a token, then lets tokens talk to each other with attention.
+        </div>
+        <div class="visual-body">
+          <div class="stage-badges">
+            <span class="pill on" id="pillImage">Image</span>
+            <span class="pill" id="pillPatch">Patch split</span>
+            <span class="pill" id="pillEmbed">Embedding</span>
+            <span class="pill" id="pillPos">Position</span>
+            <span class="pill" id="pillAttn">Attention</span>
+            <span class="pill" id="pillCls">CLS output</span>
+          </div>
+
+          <div class="image-area">
+            <div class="image-frame" id="imageFrame">
+              <div class="img-grid" id="imgGrid"></div>
+              <div class="patch-overlay" id="patchOverlay"></div>
+            </div>
+
+            <div class="token-stream" id="tokenStream"></div>
+            <div class="explain" id="explainText"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>What the model is doing</h2>
+        <div class="desc">
+          The right side shows the pipeline, a tiny attention view, and a simple “prediction” bar chart so the final representation feels less abstract.
+        </div>
+        <div class="visual-body">
+          <div class="flow" id="flow"></div>
+
+          <div class="mini-graph">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px;">
+              <strong>Prediction from CLS token</strong>
+              <span style="color:var(--muted);font-size:13px;">the highest bar is the current guess</span>
+            </div>
+            <div class="bars" id="bars"></div>
+          </div>
+
+          <div class="legend">
+            <div><span class="dot accent"></span>Patch/token state</div>
+            <div><span class="dot green"></span>Position added</div>
+            <div><span class="dot gold"></span>CLS token</div>
+          </div>
+
+          <div class="footer-note">
+            Think of the CLS token as the final notebook page. All the patches leave clues there, and the classifier reads that summary.
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const stageNames = [
+      'Raw image is visible. Nothing has been tokenized yet.',
+      'The image is split into patches. Each patch becomes one token.',
+      'Each patch gets turned into a learned embedding vector.',
+      'Positional information is added so the model knows where each patch came from.',
+      'Self-attention lets every token look at every other token.',
+      'The CLS token collects the final image summary for classification.'
+    ];
+
+    const stageIndexToPill = ['pillImage', 'pillPatch', 'pillEmbed', 'pillPos', 'pillAttn', 'pillCls'];
+    const flowLabels = [
+      ['Image', 'Pixels'],
+      ['Patchify', 'Split image'],
+      ['Embed', 'Vectorize'],
+      ['Position', 'Add location'],
+      ['Attention', 'Mix info'],
+      ['CLS', 'Classify']
+    ];
+
+    const classes = ['Cat', 'Dog', 'Plane', 'Car', 'Tree'];
+    const classScores = [0.64, 0.22, 0.08, 0.44, 0.31];
+
+    const imageFrame = document.getElementById('imageFrame');
+    const imgGrid = document.getElementById('imgGrid');
+    const patchOverlay = document.getElementById('patchOverlay');
+    const tokenStream = document.getElementById('tokenStream');
+    const explainText = document.getElementById('explainText');
+    const stageSlider = document.getElementById('stage');
+    const patchSizeSelect = document.getElementById('patchSize');
+    const flow = document.getElementById('flow');
+    const bars = document.getElementById('bars');
+
+    let stage = 0;
+    let patchSize = 3;
+
+    function getPatchCount() {
+      const imageCells = 12; // visual grid resolution, fixed
+      return Math.floor(imageCells / patchSize);
+    }
+
+    function buildImageGrid() {
+      const cells = 12;
+      imgGrid.style.gridTemplateColumns = `repeat(${cells}, 1fr)`;
+      imgGrid.style.gridTemplateRows = `repeat(${cells}, 1fr)`;
+      imgGrid.innerHTML = '';
+
+      for (let r = 0; r < cells; r++) {
+        for (let c = 0; c < cells; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'img-cell';
+          const x = c / (cells - 1);
+          const y = r / (cells - 1);
+          const warm = Math.round(60 + 170 * x);
+          const cool = Math.round(70 + 130 * y);
+          const blue = Math.round(180 + 45 * (1 - x) * (1 - y));
+          const accent = (r + c) % 5 === 0;
+          cell.style.background = accent
+            ? `linear-gradient(135deg, rgb(${warm}, ${cool}, ${blue}), rgb(${Math.max(20, warm - 45)}, ${Math.max(20, cool - 20)}, ${Math.max(40, blue - 55)}))`
+            : `linear-gradient(135deg, rgb(${Math.max(20, warm - 20)}, ${cool}, ${blue}), rgb(${warm}, ${Math.max(20, cool - 30)}, ${Math.max(40, blue - 80)}))`;
+          imgGrid.appendChild(cell);
+        }
+      }
+    }
+
+    function buildPatchOverlay() {
+      const cells = 12;
+      const n = Math.floor(cells / patchSize);
+      patchOverlay.style.setProperty('--patches', n);
+      patchOverlay.innerHTML = '';
+      for (let i = 0; i < n * n; i++) {
+        const box = document.createElement('div');
+        box.className = 'patch-box';
+        box.textContent = `P${i + 1}`;
+        patchOverlay.appendChild(box);
+      }
+    }
+
+    function buildTokens() {
+      const cells = 12;
+      const n = Math.floor(cells / patchSize);
+      const count = n * n;
+      tokenStream.innerHTML = '';
+
+      const cls = document.createElement('div');
+      cls.className = 'token cls';
+      cls.innerHTML = `<div class="tag">CLS</div><div class="value">[CLS]</div><div class="mini">summary</div>`;
+      tokenStream.appendChild(cls);
+
+      for (let i = 0; i < count; i++) {
+        const token = document.createElement('div');
+        token.className = 'token';
+        const base = 10 + i * 3;
+        token.dataset.index = i;
+        token.innerHTML = `
+          <div class="tag">Patch ${i + 1}</div>
+          <div class="value">T${i + 1}</div>
+          <div class="mini">${base.toString().padStart(2, '0')} → ${base + 7}</div>
+        `;
+        tokenStream.appendChild(token);
+      }
+    }
+
+    function buildFlow() {
+      flow.innerHTML = '';
+      for (let i = 0; i < flowLabels.length; i++) {
+        const s = document.createElement('div');
+        s.className = 'step';
+        s.dataset.step = i;
+        s.innerHTML = `<strong>${flowLabels[i][0]}</strong><div>${flowLabels[i][1]}</div>`;
+        flow.appendChild(s);
+      }
+    }
+
+    function buildBars() {
+      bars.innerHTML = '';
+      const max = Math.max(...classScores);
+      classes.forEach((name, i) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+        const h = Math.max(16, (classScores[i] / max) * 100);
+        wrap.innerHTML = `
+          <div class="bar" style="--h:${h}%">
+            <div class="label">${name}</div>
+          </div>
+          <div class="pct">${Math.round(classScores[i] * 100)}%</div>
+        `;
+        bars.appendChild(wrap);
+      });
+    }
+
+    function updateVisuals() {
+      const pills = stageIndexToPill;
+      pills.forEach((id, idx) => {
+        document.getElementById(id).classList.toggle('on', idx === stage);
+      });
+
+      document.querySelectorAll('.controls button[data-stage]').forEach(btn => {
+        btn.classList.toggle('active', Number(btn.dataset.stage) === stage);
+      });
+
+      const patchCount = getPatchCount();
+      const patchBoxes = [...document.querySelectorAll('.patch-box')];
+      const tokens = [...document.querySelectorAll('.token')];
+      const stepEls = [...document.querySelectorAll('.step')];
+      const imgCells = [...document.querySelectorAll('.img-cell')];
+
+      // Reset styles
+      patchBoxes.forEach(b => b.classList.remove('highlight'));
+      tokens.forEach((t, idx) => {
+        t.classList.remove('positioned', 'attending');
+        if (idx > 0) t.style.opacity = '1';
+      });
+      stepEls.forEach(s => s.classList.remove('on'));
+
+      // stage 0: raw image
+      if (stage === 0) {
+        imgCells.forEach(cell => cell.classList.remove('dimmed'));
+      }
+
+      // stage 1: patches visible
+      if (stage >= 1) {
+        imgCells.forEach(cell => cell.classList.add('dimmed'));
+        patchBoxes.forEach(b => b.classList.add('highlight'));
+      } else {
+        imgCells.forEach(cell => cell.classList.remove('dimmed'));
+      }
+
+      // stage 2: embeddings
+      if (stage >= 2) {
+        tokens.forEach((token, idx) => {
+          if (idx === 0) return;
+          token.style.transform = 'translateY(-1px)';
+          token.style.opacity = '1';
+          token.querySelector('.mini').textContent = 'vector';
+        });
+      } else {
+        tokens.forEach((token, idx) => {
+          if (idx === 0) return;
+          token.style.transform = 'none';
+          token.querySelector('.mini').textContent = token.dataset.index
+            ? `${(10 + Number(token.dataset.index) * 3).toString().padStart(2, '0')} → ${(10 + Number(token.dataset.index) * 3 + 7)}`
+            : 'vector';
+        });
+      }
+
+      // stage 3: positional encodings
+      if (stage >= 3) {
+        tokens.slice(1).forEach((token, idx) => {
+          token.classList.add('positioned');
+          token.querySelector('.mini').textContent = `pos ${idx + 1}`;
+        });
+        patchBoxes.forEach((box, idx) => {
+          box.textContent = `P${idx + 1}\n+ pos`;
+        });
+      } else {
+        patchBoxes.forEach((box, idx) => {
+          box.textContent = `P${idx + 1}`;
+        });
+      }
+
+      // stage 4: attention
+      if (stage >= 4) {
+        const focus = Math.min(4, tokens.length - 1);
+        tokens.slice(1).forEach((token, idx) => {
+          token.style.opacity = idx === focus - 1 ? '1' : '0.82';
+          if (idx === focus - 1) token.classList.add('attending');
+        });
+        patchBoxes.forEach((box, idx) => {
+          if (idx === focus - 1) box.classList.add('highlight');
+        });
+      }
+
+      // stage 5: CLS output
+      if (stage >= 5) {
+        tokens[0].classList.add('attending');
+        tokens[0].querySelector('.mini').textContent = 'image summary';
+        const best = classes[classScores.indexOf(Math.max(...classScores))];
+        explainText.innerHTML = `
+          <strong>Final idea:</strong> the CLS token has collected information from all patches and now acts like the whole image in one vector. The prediction here leans toward <strong>${best}</strong> because its bar is the tallest.
+        `;
+      }
+
+      // flow + stage explanation
+      stepEls.forEach((step, idx) => step.classList.toggle('on', idx === stage));
+      if (stage < 5) {
+        explainText.innerHTML = `<strong>${stage + 1}. ${flowLabels[stage][0]}</strong> — ${stageNames[stage]}`;
+      }
+
+      // Disable irrelevant tokens in early stages for clarity
+      if (stage === 0) {
+        tokens.slice(1).forEach(token => token.style.opacity = '0.38');
+      } else if (stage === 1) {
+        tokens.slice(1).forEach(token => token.style.opacity = '0.48');
+      } else if (stage === 2) {
+        tokens.slice(1).forEach(token => token.style.opacity = '0.9');
+      }
+
+      // keep CLS visible always
+      tokens[0].style.opacity = '1';
+
+      // small helper text for stage 4
+      if (stage === 4) {
+        explainText.innerHTML = `
+          <strong>Self-attention:</strong> every patch can compare itself with every other patch, so the model can connect distant parts of the image without needing a convolution window.
+        `;
+      }
+
+      if (stage === 1) {
+        explainText.innerHTML = `
+          <strong>Patching:</strong> the image is chopped into equal squares. Those squares become the basic units the transformer can read.
+        `;
+      }
+      if (stage === 2) {
+        explainText.innerHTML = `
+          <strong>Embedding:</strong> each patch is flattened and projected into a vector. That vector is the token the transformer actually processes.
+        `;
+      }
+      if (stage === 3) {
+        explainText.innerHTML = `
+          <strong>Position encoding:</strong> the model adds location information, because attention alone does not know where a patch came from.
+        `;
+      }
+      if (stage === 0) {
+        explainText.innerHTML = `
+          <strong>Raw image:</strong> start with pixels only. No patches, no tokens, just the visual input before the transformer sees it.
+        `;
+      }
+    }
+
+    function setStage(nextStage) {
+      stage = Number(nextStage);
+      stageSlider.value = String(stage);
+      updateVisuals();
+    }
+
+    buildImageGrid();
+    buildPatchOverlay();
+    buildTokens();
+    buildFlow();
+    buildBars();
+    updateVisuals();
+
+    stageSlider.addEventListener('input', (e) => setStage(e.target.value));
+    patchSizeSelect.addEventListener('change', (e) => {
+      patchSize = Number(e.target.value);
+      buildPatchOverlay();
+      buildTokens();
+      updateVisuals();
+    });
+
+    document.querySelectorAll('button[data-stage]').forEach(btn => {
+      btn.addEventListener('click', () => setStage(btn.dataset.stage));
+    });
+  </script>
+</body>
+</html>

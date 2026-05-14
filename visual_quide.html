@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Satellite Super-Resolution — Visual Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #040d1a;
+  --bg2: #071428;
+  --bg3: #0a1e3d;
+  --panel: rgba(10,24,56,0.85);
+  --border: rgba(0,200,255,0.15);
+  --accent: #00c8ff;
+  --accent2: #ff6b35;
+  --accent3: #7fff6e;
+  --accent4: #ffbe00;
+  --text: #e8f4fd;
+  --muted: #6a8faa;
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --display: 'Bebas Neue', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden;}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(16px);background:rgba(4,13,26,0.85);border-bottom:1px solid var(--border);padding:0 2rem;}
+.nav-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:0;height:56px;}
+.nav-logo{font-family:var(--display);font-size:1.3rem;color:var(--accent);letter-spacing:2px;margin-right:2.5rem;white-space:nowrap;}
+.nav-links{display:flex;gap:0;overflow-x:auto;}
+.nav-links a{font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-decoration:none;padding:0 0.7rem;height:56px;display:flex;align-items:center;border-right:1px solid var(--border);white-space:nowrap;transition:color .2s,background .2s;}
+.nav-links a:hover{color:var(--accent);background:rgba(0,200,255,0.05);}
+
+/* ── HERO ── */
+#hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 2rem 4rem;position:relative;overflow:hidden;}
+#starfield{position:absolute;inset:0;z-index:0;}
+.hero-tag{font-family:var(--mono);font-size:0.7rem;color:var(--accent);letter-spacing:4px;text-transform:uppercase;margin-bottom:1.5rem;z-index:1;}
+.hero-title{font-family:var(--display);font-size:clamp(3rem,8vw,7rem);line-height:1;text-align:center;z-index:1;letter-spacing:3px;}
+.hero-title span{color:var(--accent);}
+.hero-sub{max-width:640px;text-align:center;color:var(--muted);font-size:1.05rem;line-height:1.7;margin-top:1.5rem;z-index:1;}
+.scroll-hint{margin-top:3rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;color:var(--muted);font-size:0.75rem;font-family:var(--mono);z-index:1;animation:bounce 2s infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+/* ── SECTION WRAPPERS ── */
+section{padding:80px 2rem;max-width:1300px;margin:0 auto;}
+.section-label{font-family:var(--mono);font-size:0.65rem;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:0.75rem;}
+.section-title{font-family:var(--display);font-size:clamp(2rem,4vw,3.5rem);letter-spacing:2px;line-height:1.05;margin-bottom:1.25rem;}
+.section-desc{color:var(--muted);font-size:1rem;line-height:1.75;max-width:680px;margin-bottom:2.5rem;}
+.sep{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0;}
+
+/* ── CARDS ── */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:2rem;backdrop-filter:blur(8px);}
+.card-title{font-family:var(--mono);font-size:0.75rem;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:1rem;}
+
+/* ── GRID ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+/* ── PIXEL DEMO ── */
+.pixel-demo{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;}
+.pixel-panel{flex:1;min-width:240px;}
+.pixel-canvas-wrap{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:0.75rem;}
+canvas{display:block;}
+.pixel-label{font-family:var(--mono);font-size:0.7rem;color:var(--muted);}
+.pixel-label span{color:var(--accent);}
+
+/* ── PIPELINE ── */
+.pipeline-wrap{position:relative;display:flex;align-items:center;gap:0;overflow-x:auto;padding:2rem 0;}
+.pipeline-node{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:1.25rem 1.5rem;min-width:160px;text-align:center;position:relative;flex-shrink:0;}
+.pipeline-node.active{border-color:var(--accent);box-shadow:0 0 20px rgba(0,200,255,0.2);}
+.pipeline-node .pn-icon{font-size:1.8rem;margin-bottom:0.5rem;}
+.pipeline-node .pn-title{font-family:var(--mono);font-size:0.7rem;letter-spacing:2px;color:var(--accent);text-transform:uppercase;}
+.pipeline-node .pn-desc{font-size:0.78rem;color:var(--muted);margin-top:0.4rem;line-height:1.5;}
+.pipeline-arrow{font-size:1.5rem;color:var(--accent);padding:0 0.75rem;flex-shrink:0;opacity:0.6;}
+
+/* ── SLIDER CONTROLS ── */
+.ctrl{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;}
+.ctrl label{font-family:var(--mono);font-size:0.72rem;color:var(--muted);white-space:nowrap;}
+input[type=range]{-webkit-appearance:none;height:4px;border-radius:2px;background:var(--bg3);outline:none;flex:1;min-width:120px;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;}
+.val-badge{background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);border-radius:4px;padding:2px 8px;font-family:var(--mono);font-size:0.72rem;color:var(--accent);min-width:56px;text-align:center;}
+
+/* ── HISTOGRAM ── */
+.hist-wrap{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+@media(max-width:700px){.hist-wrap{grid-template-columns:1fr;}}
+.hist-box{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:1rem;}
+.hist-box h4{font-family:var(--mono);font-size:0.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:0.75rem;}
+.hist-bar-wrap{display:flex;align-items:flex-end;gap:1px;height:80px;}
+.hist-bar{flex:1;border-radius:2px 2px 0 0;transition:height .6s ease,background .4s;}
+
+/* ── STEP BOX ── */
+.steps{display:flex;flex-direction:column;gap:1rem;counter-reset:step;}
+.step-item{display:flex;gap:1.25rem;align-items:flex-start;}
+.step-num{width:32px;height:32px;border-radius:50%;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:0.7rem;color:var(--accent);flex-shrink:0;}
+.step-body{flex:1;}
+.step-body strong{font-size:0.9rem;display:block;margin-bottom:0.25rem;}
+.step-body p{font-size:0.85rem;color:var(--muted);line-height:1.6;}
+
+/* ── DIFFUSION ANIMATION ── */
+#diff-canvas{border:1px solid var(--border);border-radius:8px;display:block;}
+.diff-controls{display:flex;gap:1rem;align-items:center;margin-top:1rem;flex-wrap:wrap;}
+.btn{padding:8px 20px;border:1px solid var(--accent);background:rgba(0,200,255,0.1);color:var(--accent);font-family:var(--mono);font-size:0.72rem;border-radius:6px;cursor:pointer;letter-spacing:1px;transition:background .2s;}
+.btn:hover{background:rgba(0,200,255,0.2);}
+.btn.btn2{border-color:var(--accent2);background:rgba(255,107,53,0.1);color:var(--accent2);}
+.btn.btn2:hover{background:rgba(255,107,53,0.2);}
+
+/* ── METRICS ── */
+.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:2rem;}
+.metric-name{font-family:var(--display);font-size:2rem;letter-spacing:2px;margin-bottom:0.5rem;}
+.metric-name.psnr{color:var(--accent);}
+.metric-name.ssim{color:var(--accent3);}
+.metric-name.lpips{color:var(--accent2);}
+.metric-formula{background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:6px;padding:0.75rem 1rem;font-family:var(--mono);font-size:0.78rem;color:var(--accent4);margin:1rem 0;}
+.metric-score{font-family:var(--display);font-size:3rem;transition:color .3s;}
+.meter{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin:0.75rem 0;}
+.meter-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+
+/* ── RESULTS TABLE ── */
+.results-table{width:100%;border-collapse:collapse;}
+.results-table th{font-family:var(--mono);font-size:0.65rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;padding:0.75rem 1rem;text-align:left;border-bottom:1px solid var(--border);}
+.results-table td{padding:0.9rem 1rem;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.9rem;}
+.results-table tr:hover td{background:rgba(0,200,255,0.03);}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:0.68rem;}
+.badge.best{background:rgba(127,255,110,0.1);color:var(--accent3);border:1px solid rgba(127,255,110,0.3);}
+.bar-cell{display:flex;align-items:center;gap:0.75rem;}
+.bar-mini{height:6px;border-radius:3px;transition:width .8s ease;}
+
+/* ── BAR CHART ── */
+.chart-wrap{display:flex;align-items:flex-end;gap:1rem;height:180px;margin-top:1.5rem;}
+.chart-group{display:flex;flex-direction:column;align-items:center;gap:0.5rem;flex:1;}
+.chart-bars{display:flex;gap:4px;align-items:flex-end;height:140px;}
+.chart-bar{width:28px;border-radius:4px 4px 0 0;transition:height .8s cubic-bezier(.4,0,.2,1);position:relative;cursor:pointer;}
+.chart-bar:hover::after{content:attr(data-val);position:absolute;top:-24px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:0.65rem;background:var(--bg);border:1px solid var(--border);padding:2px 6px;border-radius:4px;white-space:nowrap;color:var(--text);}
+.chart-label{font-size:0.72rem;color:var(--muted);text-align:center;font-family:var(--mono);}
+
+/* ── SURFACE REFLECTANCE ── */
+.sr-level{display:flex;gap:1.5rem;align-items:flex-start;padding:1.25rem;border-left:3px solid var(--border);background:rgba(0,0,0,0.2);border-radius:0 8px 8px 0;margin-bottom:1rem;transition:border-color .3s;}
+.sr-level:hover{border-color:var(--accent);}
+.sr-badge{font-family:var(--display);font-size:2rem;color:var(--accent4);min-width:56px;}
+.sr-body strong{font-size:0.95rem;display:block;margin-bottom:0.3rem;}
+.sr-body p{font-size:0.85rem;color:var(--muted);line-height:1.6;}
+
+/* ── COMPARISON SLIDER ── */
+.compare-wrap{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:10px;cursor:col-resize;user-select:none;}
+.compare-before,.compare-after{position:absolute;inset:0;}
+.compare-after{clip-path:inset(0 50% 0 0);}
+.compare-handle{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);cursor:col-resize;z-index:10;}
+.compare-handle::before{content:'◀ ▶';position:absolute;top:50%;transform:translateY(-50%);left:50%;transform:translate(-50%,-50%);background:var(--accent);color:var(--bg);font-size:0.6rem;padding:4px 8px;border-radius:12px;white-space:nowrap;}
+
+/* ── ORBIT ANIMATION (hero) ── */
+@keyframes orbit{from{transform:rotate(0deg) translateX(140px) rotate(0deg);}to{transform:rotate(360deg) translateX(140px) rotate(-360deg);}}
+.orbit-dot{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);}
+
+/* ── TOOLTIP ── */
+.tip{position:relative;display:inline-block;border-bottom:1px dashed var(--muted);cursor:help;}
+.tip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);padding:6px 10px;border-radius:6px;font-size:0.75rem;color:var(--text);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .2s;z-index:50;max-width:220px;white-space:normal;text-align:center;}
+.tip:hover::after{opacity:1;}
+
+/* ── BAND VIZ ── */
+.bands{display:flex;gap:0.5rem;flex-wrap:wrap;}
+.band-chip{padding:4px 12px;border-radius:20px;font-family:var(--mono);font-size:0.68rem;letter-spacing:1px;}
+
+/* ── GLOW DIVIDER ── */
+.glow-div{height:1px;background:linear-gradient(90deg,transparent 0%,var(--accent) 50%,transparent 100%);margin:0;opacity:0.3;}
+
+/* ── CALLOUT BOX ── */
+.callout{padding:1rem 1.25rem;border-radius:8px;border-left:3px solid var(--accent);background:rgba(0,200,255,0.05);font-size:0.88rem;line-height:1.7;color:var(--muted);margin:1rem 0;}
+.callout strong{color:var(--text);}
+.callout.warn{border-color:var(--accent2);background:rgba(255,107,53,0.05);}
+.callout.good{border-color:var(--accent3);background:rgba(127,255,110,0.05);}
+
+/* ── ANIMATED NUMBER ── */
+.anim-num{font-family:var(--display);font-size:3rem;letter-spacing:2px;}
+
+/* scrollbar */
+::-webkit-scrollbar{height:4px;width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* section fade in */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+.fade-in.visible{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">SAT-SR</div>
+    <div class="nav-links">
+      <a href="#hero">Intro</a>
+      <a href="#problem">Problem</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#histogram">Histogram</a>
+      <a href="#fdm">FDM</a>
+      <a href="#diffusion">Diffusion</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#results">Results</a>
+      <a href="#surface">Reflectance</a>
+      <a href="#dataset">Dataset</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div id="hero">
+  <canvas id="starfield"></canvas>
+  <div class="hero-tag">Research Paper Explainer — 2025</div>
+  <h1 class="hero-title">Satellite<br><span>Super-Resolution</span><br>Explained</h1>
+  <p class="hero-sub">A complete visual guide to the TESR pipeline for aligning and enhancing multi-sensor satellite imagery — from blurry Landsat to sharp Sentinel-2 quality.</p>
+  <div class="scroll-hint">
+    <span>SCROLL TO EXPLORE</span>
+    <span>↓</span>
+  </div>
+</div>
+
+<div class="glow-div"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 1: THE PROBLEM              -->
+<!-- ──────────────────────────────────── -->
+<section id="problem" class="fade-in">
+  <div class="section-label">Section 01 — The Core Problem</div>
+  <h2 class="section-title">Why Do We<br>Need Super-Resolution?</h2>
+  <p class="section-desc">Two satellites photograph the exact same piece of Earth. One sees it at 30 meters per pixel. The other sees it at 10 meters per pixel. The goal: use AI to make the blurry one as sharp as the clear one.</p>
+
+  <div class="grid2" style="margin-bottom:2rem;">
+    <div class="card">
+      <div class="card-title">🛰 Landsat — Low Resolution</div>
+      <div style="font-size:0.88rem;color:var(--muted);margin-bottom:1rem;line-height:1.7;">Each pixel covers a <strong style="color:var(--text)">30m × 30m</strong> area. That's the size of 3 basketball courts. Fine details like individual buildings, narrow roads, or small crop fields are invisible.</div>
+      <canvas id="lr-sim" width="240" height="240" style="border:1px solid var(--border);border-radius:8px;image-rendering:pixelated;width:100%;max-width:240px;"></canvas>
+      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-top:0.5rem;">Simulated 30m resolution — <span style="color:var(--accent2)">blurry, blocky</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🛰 Sentinel-2 — High Resolution</div>
+      <div style="font-size:0.88rem;color:var(--muted);margin-bottom:1rem;line-height:1.7;">Each pixel covers a <strong style="color:var(--text)">10m × 10m</strong> area. Three times sharper than Landsat. You can see roads, field boundaries, and building rooftops clearly.</div>
+      <canvas id="hr-sim" width="240" height="240" style="border:1px solid var(--border);border-radius:8px;width:100%;max-width:240px;"></canvas>
+      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-top:0.5rem;">Simulated 10m resolution — <span style="color:var(--accent3)">sharp, detailed</span></div>
+    </div>
+  </div>
+
+  <!-- Interactive pixel slider -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Interactive — Resolution Comparison</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.25rem;">Drag the slider to simulate different pixel sizes. Watch how much detail disappears as resolution drops.</p>
+    <div class="ctrl">
+      <label>Pixel Size (meters):</label>
+      <input type="range" id="res-slider" min="1" max="30" value="10">
+      <span class="val-badge" id="res-val">10m</span>
+    </div>
+    <canvas id="res-canvas" width="600" height="200" style="width:100%;border:1px solid var(--border);border-radius:8px;"></canvas>
+    <div id="res-interpretation" style="font-family:var(--mono);font-size:0.72rem;margin-top:0.75rem;color:var(--muted);padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:6px;"></div>
+  </div>
+
+  <div class="grid3">
+    <div class="card">
+      <div class="card-title">🗓 Landsat Heritage</div>
+      <div style="font-family:var(--display);font-size:3rem;color:var(--accent4);">1972</div>
+      <p style="font-size:0.85rem;color:var(--muted);line-height:1.6;margin-top:0.5rem;">Landsat has been photographing Earth since 1972 — over 50 years of historical data. This archive is scientifically irreplaceable but stuck at 30m resolution.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📐 Resolution Gap</div>
+      <div style="font-family:var(--display);font-size:3rem;color:var(--accent2);">3×</div>
+      <p style="font-size:0.85rem;color:var(--muted);line-height:1.6;margin-top:0.5rem;">Sentinel-2 is 3× sharper than Landsat. The paper's goal is exactly this: apply 3× super-resolution magnification to make Landsat match Sentinel quality.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ The Color Problem</div>
+      <div style="font-family:var(--display);font-size:3rem;color:var(--accent);">≠</div>
+      <p style="font-size:0.85rem;color:var(--muted);line-height:1.6;margin-top:0.5rem;">Even photographing the same land, Landsat and Sentinel produce different colors. This spectral mismatch is what breaks naïve super-resolution approaches.</p>
+    </div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 2: THE PIPELINE             -->
+<!-- ──────────────────────────────────── -->
+<section id="pipeline" class="fade-in">
+  <div class="section-label">Section 02 — Architecture</div>
+  <h2 class="section-title">The TESR Pipeline</h2>
+  <p class="section-desc">Two-stage approach: first enlarge with a Vision Transformer, then fix colors with Histogram/Feature Matching, then refine fine details with a Diffusion Model.</p>
+
+  <div style="overflow-x:auto;padding-bottom:1rem;margin-bottom:2rem;">
+    <div class="pipeline-wrap">
+      <div class="pipeline-node" id="pn0">
+        <div class="pn-icon">🗺</div>
+        <div class="pn-title">Input</div>
+        <div class="pn-desc">Landsat HLS30<br>128×128 px<br>30m/pixel</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-node" id="pn1">
+        <div class="pn-icon">🔬</div>
+        <div class="pn-title">SwinIR</div>
+        <div class="pn-desc">Vision Transformer<br>Enlarges 3×<br>384×384 px</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-node" id="pn2">
+        <div class="pn-icon">🎨</div>
+        <div class="pn-title">HM / FDM</div>
+        <div class="pn-desc">Color Correction<br>Fixes spectral<br>mismatch</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-node" id="pn3">
+        <div class="pn-icon">✨</div>
+        <div class="pn-title">SR3</div>
+        <div class="pn-desc">Diffusion Model<br>Adds fine details<br>2000 steps</div>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-node" id="pn4">
+        <div class="pn-icon">🛰</div>
+        <div class="pn-title">Output</div>
+        <div class="pn-desc">HLS10 quality<br>384×384 px<br>10m/pixel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clickable pipeline explainer -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Click Each Stage to Learn More</div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;" id="stage-btns">
+      <button class="btn" onclick="showStage(0)">① Input</button>
+      <button class="btn" onclick="showStage(1)">② SwinIR</button>
+      <button class="btn" onclick="showStage(2)">③ HM/FDM</button>
+      <button class="btn" onclick="showStage(3)">④ SR3</button>
+      <button class="btn" onclick="showStage(4)">⑤ Output</button>
+    </div>
+    <div id="stage-detail" style="padding:1.25rem;background:rgba(0,0,0,0.3);border-radius:8px;min-height:120px;line-height:1.75;font-size:0.9rem;"></div>
+  </div>
+
+  <div class="callout">
+    <strong>Key Insight:</strong> The paper found that without the color-correction step (HM/FDM), SR3 fails completely — producing garbage artifacts. The <strong>preprocessing is what makes the whole pipeline work</strong>.
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 3: HISTOGRAM MATCHING       -->
+<!-- ──────────────────────────────────── -->
+<section id="histogram" class="fade-in">
+  <div class="section-label">Section 03 — Color Correction</div>
+  <h2 class="section-title">Histogram Matching<br>Step by Step</h2>
+  <p class="section-desc">Histogram Matching redistributes pixel brightness values so the source image's distribution matches the reference image. It's like matching the "brightness personality" of one image to another.</p>
+
+  <!-- Interactive demo -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Interactive Histogram Demo</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.25rem;">Adjust the sliders to change the source image's brightness pattern. Watch the histograms shift, then see how Histogram Matching corrects it.</p>
+
+    <div class="ctrl">
+      <label>Source Brightness Bias:</label>
+      <input type="range" id="hm-bias" min="-80" max="80" value="-40">
+      <span class="val-badge" id="hm-bias-val">Dark</span>
+    </div>
+    <div class="ctrl">
+      <label>Source Contrast:</label>
+      <input type="range" id="hm-contrast" min="20" max="120" value="40">
+      <span class="val-badge" id="hm-contrast-val">Low</span>
+    </div>
+
+    <div class="hist-wrap" id="hm-hists">
+      <div class="hist-box">
+        <h4>Source (Landsat)</h4>
+        <div class="hist-bar-wrap" id="hm-src-hist"></div>
+        <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.5rem;">Brightness →</div>
+      </div>
+      <div class="hist-box">
+        <h4>Reference (Sentinel)</h4>
+        <div class="hist-bar-wrap" id="hm-ref-hist"></div>
+        <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.5rem;">Brightness →</div>
+      </div>
+      <div class="hist-box">
+        <h4>After Matching ✨</h4>
+        <div class="hist-bar-wrap" id="hm-out-hist"></div>
+        <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.5rem;">Brightness →</div>
+      </div>
+    </div>
+
+    <canvas id="hm-canvas" width="800" height="200" style="width:100%;border:1px solid var(--border);border-radius:8px;margin-top:1.25rem;"></canvas>
+    <div style="display:flex;gap:2rem;margin-top:0.5rem;font-family:var(--mono);font-size:0.65rem;color:var(--muted);">
+      <span><span style="color:var(--accent2)">■</span> Source Image</span>
+      <span><span style="color:var(--accent3)">■</span> After HM</span>
+      <span><span style="color:var(--accent)">■</span> Reference</span>
+    </div>
+  </div>
+
+  <!-- Step by step -->
+  <div class="card">
+    <div class="card-title">How It Works — 5 Steps</div>
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Count Pixel Brightnesses (Histogram)</strong>
+          <p>For every brightness level (0=black to 255=white), count how many pixels have that value. Like taking attendance in a class — how many students sit at each "brightness desk"?</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Calculate PDF (Probability Density Function)</strong>
+          <p>Divide each count by total pixels → converts raw counts into percentages. "24% of pixels are at brightness level 180." Makes images comparable regardless of size.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Calculate CDF (Cumulative Distribution Function)</strong>
+          <p>Running total of PDFs. CDF of 0.40 at value 100 means: "40% of all pixels are darker than 100." This is a <em>ranking system</em> — what percentile is each pixel?</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Match Rankings Across Images</strong>
+          <p>Key insight: a pixel at the 40th percentile in Source should become whatever value is at the 40th percentile in Reference. Same rank = same relative position = visually equivalent.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Remap All Pixels</strong>
+          <p>Apply the mapping table to every pixel in the source image. Dark pixels get pushed up to brighter values. The resulting image has the same "brightness personality" as the reference.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 4: FDM                      -->
+<!-- ──────────────────────────────────── -->
+<section id="fdm" class="fade-in">
+  <div class="section-label">Section 04 — Color Correction (Advanced)</div>
+  <h2 class="section-title">Feature Distribution<br>Matching (FDM)</h2>
+  <p class="section-desc">A smarter color correction that understands how colors <em>relate to each other</em>, not just how bright they are. Like matching the entire "mood" of the color palette.</p>
+
+  <div class="grid2" style="margin-bottom:2rem;">
+    <div class="card">
+      <div class="card-title">HM vs FDM — What's the Difference?</div>
+      <div class="sr-level">
+        <div class="sr-badge" style="color:var(--accent);">HM</div>
+        <div class="sr-body">
+          <strong>Histogram Matching</strong>
+          <p>Adjusts each color channel independently. Matches brightness distribution channel by channel. Fast and mechanical — great for global brightness correction.</p>
+        </div>
+      </div>
+      <div class="sr-level">
+        <div class="sr-badge" style="color:var(--accent3);">FDM</div>
+        <div class="sr-body">
+          <strong>Feature Distribution Matching</strong>
+          <p>Matches the mean AND covariance across all channels simultaneously. Understands how Red relates to Green, how Green relates to Blue. Captures the full "color personality."</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">The Math — Simply Put</div>
+      <div class="metric-formula">FDM: Transfer μ (mean) + Σ (covariance)<br>from Reference → to Source</div>
+      <p style="font-size:0.88rem;color:var(--muted);line-height:1.75;">
+        <strong style="color:var(--text);">Mean (μ)</strong> = average color tone. Is the image generally warm or cool? Bright or dark?<br><br>
+        <strong style="color:var(--text);">Covariance (Σ)</strong> = how colors relate. When red is bright, is green also bright? FDM transfers both so the color relationships are preserved from reference to source.
+      </p>
+      <div class="callout">
+        <strong>Analogy:</strong> HM paints all walls the same shade as the reference room. FDM understands the entire mood and color scheme — warm tones, contrast relationships — and recreates that mood.
+      </div>
+    </div>
+  </div>
+
+  <!-- Visual comparison -->
+  <div class="card">
+    <div class="card-title">Interactive — See the Color Transfer Effect</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Adjust the source color profile and watch how FDM transfers the reference's mean and covariance.</p>
+    <div class="ctrl">
+      <label>Source Red Mean:</label>
+      <input type="range" id="fdm-r" min="30" max="200" value="60">
+      <span class="val-badge" id="fdm-r-val">60</span>
+    </div>
+    <div class="ctrl">
+      <label>Source Green Mean:</label>
+      <input type="range" id="fdm-g" min="30" max="200" value="80">
+      <span class="val-badge" id="fdm-g-val">80</span>
+    </div>
+    <div class="ctrl">
+      <label>Source Blue Mean:</label>
+      <input type="range" id="fdm-b" min="30" max="200" value="40">
+      <span class="val-badge" id="fdm-b-val">40</span>
+    </div>
+    <canvas id="fdm-canvas" width="900" height="160" style="width:100%;border:1px solid var(--border);border-radius:8px;margin-top:1rem;"></canvas>
+    <div style="display:flex;gap:2rem;margin-top:0.5rem;font-family:var(--mono);font-size:0.65rem;color:var(--muted);">
+      <span>SOURCE</span><span>→</span><span>FDM RESULT</span><span>→</span><span>REFERENCE (TARGET)</span>
+    </div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 5: SR3 DIFFUSION            -->
+<!-- ──────────────────────────────────── -->
+<section id="diffusion" class="fade-in">
+  <div class="section-label">Section 05 — Detail Refinement</div>
+  <h2 class="section-title">SR3 Diffusion Model</h2>
+  <p class="section-desc">SR3 learns to sharpen images by first learning how to <em>destroy</em> them — then reversing that process. It adds real photographic detail that simple sharpening filters cannot.</p>
+
+  <div class="grid2" style="margin-bottom:2rem;">
+    <div class="card">
+      <div class="card-title">Training: The Destruction Process</div>
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">→</div>
+          <div class="step-body">
+            <strong>Start with sharp HR image</strong>
+            <p>Take a perfectly sharp satellite image from the training set.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">→</div>
+          <div class="step-body">
+            <strong>Gradually add noise (2000 steps)</strong>
+            <p>At each step, add a tiny amount of random static. After 2000 steps: pure noise, original invisible.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">→</div>
+          <div class="step-body">
+            <strong>SR3 learns to reverse each step</strong>
+            <p>"Given image at step N, predict the noise that was added." After millions of examples, it becomes expert at denoising.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Inference: Reversing the Process</div>
+      <div class="steps">
+        <div class="step-item">
+          <div class="step-num">←</div>
+          <div class="step-body">
+            <strong>Start from noise + blurry guide</strong>
+            <p>Begin with random static, plus the HM-corrected SwinIR output as a spatial guide.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">←</div>
+          <div class="step-body">
+            <strong>Remove noise step by step</strong>
+            <p>Each of 2000 steps removes a tiny bit of noise, guided by the blurry reference image.</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <div class="step-num">←</div>
+          <div class="step-body">
+            <strong>Sharp image emerges</strong>
+            <p>Like a sculptor revealing a statue from marble — 2000 careful chisel taps produce photorealistic detail.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diffusion Animation -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Interactive — Diffusion Process Simulation</div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">Watch the denoising process. <strong style="color:var(--text);">Forward</strong> adds noise. <strong style="color:var(--accent);">Reverse</strong> removes it, guided by the blurry image.</p>
+    <canvas id="diff-canvas" width="800" height="220" style="width:100%;"></canvas>
+    <div class="diff-controls">
+      <button class="btn btn2" onclick="runForwardDiffusion()">▶ Add Noise (Forward)</button>
+      <button class="btn" onclick="runReverseDiffusion()">▶ Denoise (Reverse)</button>
+      <button class="btn" onclick="resetDiffusion()" style="border-color:var(--muted);color:var(--muted);background:transparent;">↺ Reset</button>
+      <div style="flex:1;display:flex;align-items:center;gap:0.75rem;">
+        <label style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap;">Step:</label>
+        <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
+          <div id="diff-progress" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .1s;"></div>
+        </div>
+        <span class="val-badge" id="diff-step">0/2000</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <strong>Why did SR3 fail initially?</strong> SR3 was trained on WorldStrat images (one color range). When given Landsat images (completely different color range), it produced garbage — like asking someone to finish a watercolor painting using oil paints. <strong>HM/FDM fixes this mismatch before SR3 runs.</strong>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 6: METRICS                  -->
+<!-- ──────────────────────────────────── -->
+<section id="metrics" class="fade-in">
+  <div class="section-label">Section 06 — Evaluation</div>
+  <h2 class="section-title">How Do We Measure<br>Image Quality?</h2>
+  <p class="section-desc">Three completely different ways to measure whether a super-resolved image is actually good. Each captures something different — and none of them is complete on its own.</p>
+
+  <!-- PSNR -->
+  <div class="metric-card" style="margin-bottom:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+      <div style="flex:1;min-width:280px;">
+        <div class="metric-name psnr">PSNR</div>
+        <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.75rem;">PEAK SIGNAL-TO-NOISE RATIO</div>
+        <div class="metric-formula">PSNR = 10 × log₁₀( MAX² / MSE )
+MSE = average squared pixel error
+↑ Higher = Better</div>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.75;">Measures raw pixel accuracy. For every pixel, computes (predicted - actual)², averages them all, then converts to decibels. Like measuring how close a dart thrower consistently hits the bullseye — in millimeters, converted to a score.</p>
+      </div>
+      <div style="text-align:center;min-width:160px;">
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;">LIVE PSNR CALCULATOR</div>
+        <div class="ctrl" style="flex-direction:column;align-items:flex-start;">
+          <label>Pixel Error (±px):</label>
+          <input type="range" id="psnr-err" min="0" max="50" value="5" style="width:180px;">
+        </div>
+        <div class="metric-score psnr" id="psnr-score">42.1 dB</div>
+        <div class="meter"><div class="meter-fill" id="psnr-meter" style="background:var(--accent);width:80%;"></div></div>
+        <div id="psnr-interp" style="font-size:0.75rem;color:var(--muted);font-family:var(--mono);"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-top:1.5rem;">
+      <div style="text-align:center;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <div style="font-family:var(--display);font-size:1.5rem;color:var(--accent);">40+ dB</div>
+        <div style="font-size:0.72rem;color:var(--muted);">Excellent</div>
+      </div>
+      <div style="text-align:center;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <div style="font-family:var(--display);font-size:1.5rem;color:var(--accent3);">30-40 dB</div>
+        <div style="font-size:0.72rem;color:var(--muted);">Good</div>
+      </div>
+      <div style="text-align:center;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <div style="font-family:var(--display);font-size:1.5rem;color:var(--accent4);">20-30 dB</div>
+        <div style="font-size:0.72rem;color:var(--muted);">Acceptable</div>
+      </div>
+      <div style="text-align:center;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:6px;">
+        <div style="font-family:var(--display);font-size:1.5rem;color:var(--accent2);">&lt; 20 dB</div>
+        <div style="font-size:0.72rem;color:var(--muted);">Poor</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SSIM -->
+  <div class="metric-card" style="margin-bottom:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+      <div style="flex:1;min-width:280px;">
+        <div class="metric-name ssim">SSIM</div>
+        <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.75rem;">STRUCTURAL SIMILARITY INDEX</div>
+        <div class="metric-formula">SSIM = f( luminance × contrast × structure )
+Range: 0 to 1
+↑ Higher = Better</div>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.75;">Measures structural similarity by comparing local patches of 11×11 pixels. It asks: "Does this region <em>look</em> like the reference — in terms of edges, textures, and patterns?" PSNR is blind to blur; SSIM immediately detects it. You can blur an image, keep PSNR decent, but SSIM collapses.</p>
+      </div>
+      <div style="text-align:center;min-width:160px;">
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;">BLUR SIMULATOR</div>
+        <div class="ctrl" style="flex-direction:column;align-items:flex-start;">
+          <label>Blur Amount:</label>
+          <input type="range" id="ssim-blur" min="0" max="20" value="0" style="width:180px;">
+        </div>
+        <div class="metric-score ssim" id="ssim-score">1.000</div>
+        <div class="meter"><div class="meter-fill" id="ssim-meter" style="background:var(--accent3);width:100%;"></div></div>
+        <div id="ssim-interp" style="font-size:0.75rem;color:var(--muted);font-family:var(--mono);"></div>
+        <canvas id="ssim-canvas" width="160" height="80" style="border:1px solid var(--border);border-radius:6px;margin-top:0.5rem;image-rendering:pixelated;width:160px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- LPIPS -->
+  <div class="metric-card" style="margin-bottom:2rem;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+      <div style="flex:1;min-width:280px;">
+        <div class="metric-name lpips">LPIPS</div>
+        <div style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);letter-spacing:2px;margin-bottom:0.75rem;">LEARNED PERCEPTUAL IMAGE PATCH SIMILARITY</div>
+        <div class="metric-formula">LPIPS = distance between VGG/AlexNet features
+Extracted by a pre-trained neural network
+↓ Lower = Better</div>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.75;">Uses a pre-trained image recognition network (VGG) to extract "what it sees" — not raw pixels but deep features. Measures how different these features are between two images. This is the closest approximation to "does this look right to a human?" Two images can have similar pixels but if one has weird halos or artifacts, LPIPS detects it.</p>
+      </div>
+      <div style="text-align:center;min-width:160px;">
+        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;">ARTIFACT SIMULATOR</div>
+        <div class="ctrl" style="flex-direction:column;align-items:flex-start;">
+          <label>Artifact Level:</label>
+          <input type="range" id="lpips-art" min="0" max="100" value="10" style="width:180px;">
+        </div>
+        <div class="metric-score lpips" id="lpips-score">0.05</div>
+        <div class="meter"><div class="meter-fill" id="lpips-meter" style="background:var(--accent2);width:5%;"></div></div>
+        <div id="lpips-interp" style="font-size:0.75rem;color:var(--muted);font-family:var(--mono);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why three metrics? -->
+  <div class="card">
+    <div class="card-title">Why Do We Need All Three?</div>
+    <div class="grid3">
+      <div style="padding:1rem;background:rgba(0,0,0,0.3);border-radius:8px;border-top:3px solid var(--accent);">
+        <div style="font-family:var(--display);font-size:1.2rem;color:var(--accent);margin-bottom:0.5rem;">PSNR</div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;">Pixel accuracy. Sensitive to tiny brightness errors even when the image looks perfect. Can be fooled by blur.</p>
+      </div>
+      <div style="padding:1rem;background:rgba(0,0,0,0.3);border-radius:8px;border-top:3px solid var(--accent3);">
+        <div style="font-family:var(--display);font-size:1.2rem;color:var(--accent3);margin-bottom:0.5rem;">SSIM</div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;">Structural quality. Detects blur, edge degradation. Correlates well with human perception of sharpness.</p>
+      </div>
+      <div style="padding:1rem;background:rgba(0,0,0,0.3);border-radius:8px;border-top:3px solid var(--accent2);">
+        <div style="font-family:var(--display);font-size:1.2rem;color:var(--accent2);margin-bottom:0.5rem;">LPIPS</div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;">Perceptual quality. Detects artifacts and texture errors invisible to PSNR/SSIM. Closest to human judgment.</p>
+      </div>
+    </div>
+    <div class="callout good" style="margin-top:1.5rem;">
+      <strong>Paper insight:</strong> FDM wins on PSNR and LPIPS. HM wins on SSIM. Neither method dominates all three metrics — which is why the paper uses both and recommends choosing based on your downstream application.
+    </div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 7: RESULTS                  -->
+<!-- ──────────────────────────────────── -->
+<section id="results" class="fade-in">
+  <div class="section-label">Section 07 — Results</div>
+  <h2 class="section-title">Comparing All<br>Methods Visually</h2>
+  <p class="section-desc">The paper reports two key results tables. The first compares alignment methods. The second shows the full pipeline impact (with SR3). Interact with the charts below.</p>
+
+  <!-- Table 1 -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Table 1 — SwinIR + Color Correction (No SR3)</div>
+    <div style="overflow-x:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>SSIM ↑</th>
+            <th>LPIPS ↓</th>
+            <th>PSNR ↑</th>
+            <th>SSIM Bar</th>
+            <th>PSNR Bar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="font-family:var(--mono);font-size:0.78rem;">SwinIR Only</span></td>
+            <td style="font-family:var(--mono);color:var(--muted);">0.5277</td>
+            <td style="font-family:var(--mono);color:var(--muted);">0.2868</td>
+            <td style="font-family:var(--mono);color:var(--muted);">19.19</td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(0.5277/0.7*100%);max-width:100px;background:var(--muted);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--muted);">52.8%</span></div></td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(19.19/35*100%);max-width:100px;background:var(--muted);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--muted);">19.2</span></div></td>
+          </tr>
+          <tr>
+            <td><span style="font-family:var(--mono);font-size:0.78rem;">SwinIR + FDM</span></td>
+            <td style="font-family:var(--mono);color:var(--accent);">0.6330</td>
+            <td style="font-family:var(--mono);color:var(--accent3);">0.2020 <span class="badge best">BEST</span></td>
+            <td style="font-family:var(--mono);color:var(--accent);">28.94 <span class="badge best">BEST</span></td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(0.633/0.7*100%);max-width:100px;background:var(--accent);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent);">63.3%</span></div></td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(28.94/35*100%);max-width:100px;background:var(--accent);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent);">28.9</span></div></td>
+          </tr>
+          <tr>
+            <td><span style="font-family:var(--mono);font-size:0.78rem;">SwinIR + HM</span></td>
+            <td style="font-family:var(--mono);color:var(--accent3);">0.6639 <span class="badge best">BEST</span></td>
+            <td style="font-family:var(--mono);color:var(--accent);">0.2152</td>
+            <td style="font-family:var(--mono);color:var(--accent);">28.86</td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(0.6639/0.7*100%);max-width:100px;background:var(--accent3);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent3);">66.4%</span></div></td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(28.86/35*100%);max-width:100px;background:var(--accent3);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent3);">28.9</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Bar Chart -->
+    <div style="margin-top:2rem;">
+      <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:1rem;">VISUAL COMPARISON — TABLE 1</div>
+      <canvas id="chart1" width="800" height="200" style="width:100%;"></canvas>
+    </div>
+  </div>
+
+  <!-- Table 2 -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Table 2 — Full Pipeline (With SR3)</div>
+    <div style="overflow-x:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>SSIM ↑</th>
+            <th>LPIPS ↓</th>
+            <th>PSNR ↑</th>
+            <th>SSIM Bar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="font-family:var(--mono);font-size:0.78rem;">SR3 (no HM/FDM)</span></td>
+            <td style="font-family:var(--mono);color:var(--accent2);">0.1276</td>
+            <td style="font-family:var(--mono);color:var(--accent2);">0.5218</td>
+            <td style="font-family:var(--mono);color:var(--accent2);">10.81</td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(0.1276/0.7*100%);max-width:100px;background:var(--accent2);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent2);">12.8% ❌</span></div></td>
+          </tr>
+          <tr>
+            <td><span style="font-family:var(--mono);font-size:0.78rem;">FDM + SR3</span></td>
+            <td style="font-family:var(--mono);color:var(--accent);">0.5268</td>
+            <td style="font-family:var(--mono);color:var(--accent3);">0.2359 <span class="badge best">BEST</span></td>
+            <td style="font-family:var(--mono);color:var(--accent);">27.68 <span class="badge best">BEST</span></td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(0.5268/0.7*100%);max-width:100px;background:var(--accent);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent);">52.7%</span></div></td>
+          </tr>
+          <tr>
+            <td><span style="font-family:var(--mono);font-size:0.78rem;">HM + SR3</span></td>
+            <td style="font-family:var(--mono);color:var(--accent3);">0.6181 <span class="badge best">BEST</span></td>
+            <td style="font-family:var(--mono);color:var(--accent);">0.2232</td>
+            <td style="font-family:var(--mono);color:var(--accent);">27.42</td>
+            <td><div class="bar-cell"><div class="bar-mini" style="width:calc(0.6181/0.7*100%);max-width:100px;background:var(--accent3);"></div><span style="font-size:0.72rem;font-family:var(--mono);color:var(--accent3);">61.8% ✓</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn" style="margin-top:1.5rem;">
+      <strong>The most striking result:</strong> Without HM/FDM, SR3 collapses to SSIM=0.13 and PSNR=10.8 — essentially broken. With HM applied first, SSIM jumps to 0.62 and PSNR to 27.4. That massive improvement from a single preprocessing step is the paper's most important finding.
+    </div>
+  </div>
+
+  <!-- Comparison chart -->
+  <div class="card">
+    <div class="card-title">Interactive — Toggle Metrics</div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <button class="btn" onclick="setMetric('ssim')" id="btn-ssim">SSIM ↑</button>
+      <button class="btn" onclick="setMetric('psnr')" id="btn-psnr">PSNR ↑</button>
+      <button class="btn btn2" onclick="setMetric('lpips')" id="btn-lpips">LPIPS ↓</button>
+    </div>
+    <canvas id="chart-compare" width="800" height="280" style="width:100%;"></canvas>
+    <div id="chart-legend" style="display:flex;gap:1.5rem;margin-top:0.75rem;font-family:var(--mono);font-size:0.65rem;flex-wrap:wrap;"></div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 8: SURFACE REFLECTANCE      -->
+<!-- ──────────────────────────────────── -->
+<section id="surface" class="fade-in">
+  <div class="section-label">Section 08 — Physics</div>
+  <h2 class="section-title">What Do Satellites<br>Actually Measure?</h2>
+  <p class="section-desc">Satellites don't see colors directly. They measure how much light bounces back from Earth. This measured value goes through several conversions before it becomes scientifically useful.</p>
+
+  <div style="margin-bottom:2rem;">
+    <div class="sr-level">
+      <div class="sr-badge">DN</div>
+      <div class="sr-body">
+        <strong>Digital Number (Raw Signal)</strong>
+        <p>Raw electrical signal from the satellite sensor. Just a number (0–14000). Has no physical meaning on its own. Depends on sensor gain, temperature, and calibration. Formula: <code style="font-family:var(--mono);color:var(--accent4);">Lλ = G × DN + B</code></p>
+      </div>
+    </div>
+    <div style="padding-left:2rem;color:var(--muted);font-size:1.2rem;margin:-0.5rem 0;">↓</div>
+    <div class="sr-level" style="border-color:rgba(0,200,255,0.3);">
+      <div class="sr-badge" style="color:var(--accent);">TOA</div>
+      <div class="sr-body">
+        <strong>Top-of-Atmosphere Reflectance</strong>
+        <p>Physically meaningful — but still includes atmospheric distortion. Like seeing a tree through foggy glass. Formula: <code style="font-family:var(--mono);color:var(--accent4);">ρTOA = (π × Lλ × d²) / (Esun × cos θs)</code></p>
+      </div>
+    </div>
+    <div style="padding-left:2rem;color:var(--muted);font-size:1.2rem;margin:-0.5rem 0;">↓</div>
+    <div class="sr-level" style="border-color:rgba(127,255,110,0.4);">
+      <div class="sr-badge" style="color:var(--accent3);">SR</div>
+      <div class="sr-body">
+        <strong>Surface Reflectance (The Goal)</strong>
+        <p>Atmospheric correction removes all atmospheric effects. Now measuring the actual land surface, as if no atmosphere existed. Consistent across time, season, and sensor. The paper's custom dataset uses this. Formula: <code style="font-family:var(--mono);color:var(--accent4);">ρsurf = (ρTOA − ρpath) / (Ts × Tv)</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why SR matters -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Applications of Surface Reflectance</div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.5rem;">
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+          <span style="font-size:1.2rem;">🌿</span>
+          <div>
+            <div style="font-size:0.85rem;font-weight:500;">Vegetation Monitoring</div>
+            <div style="font-size:0.78rem;color:var(--muted);">NDVI, EVI indices for crop and forest health</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+          <span style="font-size:1.2rem;">💧</span>
+          <div>
+            <div style="font-size:0.85rem;font-weight:500;">Flood & Water Mapping</div>
+            <div style="font-size:0.78rem;color:var(--muted);">NDWI, MNDWI indices for water detection</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+          <span style="font-size:1.2rem;">🏔</span>
+          <div>
+            <div style="font-size:0.85rem;font-weight:500;">Soil & Mineral Mapping</div>
+            <div style="font-size:0.78rem;color:var(--muted);">Spectral signatures distinguish surface materials</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+          <span style="font-size:1.2rem;">🌡</span>
+          <div>
+            <div style="font-size:0.85rem;font-weight:500;">Climate Studies</div>
+            <div style="font-size:0.78rem;color:var(--muted);">Surface albedo for energy balance modeling</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Why It Matters for SR</div>
+      <p style="font-size:0.88rem;color:var(--muted);line-height:1.75;margin-bottom:1rem;">Regular RGB images have values 0–255. Satellite surface reflectance has values roughly 0–1 (or -0.1 to 0.5 depending on sensor). Training super-resolution on surface reflectance values makes the model:</p>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+          <span style="color:var(--accent3);font-weight:700;">✓</span>
+          <span style="font-size:0.85rem;color:var(--muted);">Physically meaningful — optimizes for real geophysical values</span>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+          <span style="color:var(--accent3);font-weight:700;">✓</span>
+          <span style="font-size:0.85rem;color:var(--muted);">Generalizable — consistent across time, geography, sensors</span>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+          <span style="color:var(--accent3);font-weight:700;">✓</span>
+          <span style="font-size:0.85rem;color:var(--muted);">Directly usable in downstream science (no extra conversion)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<!-- ──────────────────────────────────── -->
+<!-- SECTION 9: DATASET                  -->
+<!-- ──────────────────────────────────── -->
+<section id="dataset" class="fade-in">
+  <div class="section-label">Section 09 — Data</div>
+  <h2 class="section-title">The Custom HLS Dataset</h2>
+  <p class="section-desc">The paper's own dataset is more scientifically rigorous than WorldStrat. It uses NASA's HLS pipeline to harmonize Landsat and Sentinel data — removing atmospheric, illumination, and calibration differences before any super-resolution.</p>
+
+  <div class="grid2" style="margin-bottom:2rem;">
+    <div class="card">
+      <div class="card-title">HLS30 — Landsat (Low Resolution)</div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div><span style="font-family:var(--display);font-size:2.5rem;color:var(--accent2);">30m</span><span style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-left:0.75rem;">per pixel</span></div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Tile size: 3660 × 3660 px</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Cropped patches: 128 × 128 px</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Coverage: 2018–2022</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">18 terrain regions, &lt;5% cloud</div>
+        <div class="bands" style="margin-top:0.5rem;">
+          <span class="band-chip" style="background:rgba(255,0,0,0.15);color:#ff6b6b;border:1px solid rgba(255,0,0,0.2);">RED</span>
+          <span class="band-chip" style="background:rgba(0,255,0,0.1);color:#6bff6b;border:1px solid rgba(0,255,0,0.2);">GREEN</span>
+          <span class="band-chip" style="background:rgba(0,0,255,0.2);color:#6b9fff;border:1px solid rgba(0,0,255,0.3);">BLUE</span>
+          <span class="band-chip" style="background:rgba(200,0,200,0.1);color:#ff6bff;border:1px solid rgba(200,0,200,0.2);">NIR</span>
+          <span class="band-chip" style="background:rgba(255,200,0,0.1);color:#ffc83d;border:1px solid rgba(255,200,0,0.2);">SWIR1</span>
+          <span class="band-chip" style="background:rgba(200,100,0,0.1);color:#ff9f3d;border:1px solid rgba(200,100,0,0.2);">SWIR2</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">HLS10 — Sentinel-2 (High Resolution)</div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div><span style="font-family:var(--display);font-size:2.5rem;color:var(--accent3);">10m</span><span style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-left:0.75rem;">per pixel</span></div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Tile size: 10980 × 10980 px</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Cropped patches: 384 × 384 px</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Reference (target output)</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);">784 patches per terrain image</div>
+        <div class="bands" style="margin-top:0.5rem;">
+          <span class="band-chip" style="background:rgba(255,0,0,0.15);color:#ff6b6b;border:1px solid rgba(255,0,0,0.2);">RED</span>
+          <span class="band-chip" style="background:rgba(0,255,0,0.1);color:#6bff6b;border:1px solid rgba(0,255,0,0.2);">GREEN</span>
+          <span class="band-chip" style="background:rgba(0,0,255,0.2);color:#6b9fff;border:1px solid rgba(0,0,255,0.3);">BLUE</span>
+          <span class="band-chip" style="background:rgba(200,0,200,0.1);color:#ff6bff;border:1px solid rgba(200,0,200,0.2);">NIR</span>
+          <span class="band-chip" style="background:rgba(255,200,0,0.1);color:#ffc83d;border:1px solid rgba(255,200,0,0.2);">SWIR1</span>
+          <span class="band-chip" style="background:rgba(200,100,0,0.1);color:#ff9f3d;border:1px solid rgba(200,100,0,0.2);">SWIR2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- The HLS harmonization -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">What "Harmonized" Actually Means</div>
+    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.75;">The HLS pipeline does 4 things to make Landsat and Sentinel data truly comparable:</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">
+      <div style="padding:1rem;background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.1);border-radius:8px;">
+        <div style="font-family:var(--display);font-size:1.4rem;color:var(--accent);margin-bottom:0.4rem;">01</div>
+        <strong style="font-size:0.88rem;">Atmospheric Correction</strong>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;line-height:1.6;">Removes the effect of atmosphere (dust, water vapor). Both satellites now see the same surface.</p>
+      </div>
+      <div style="padding:1rem;background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.1);border-radius:8px;">
+        <div style="font-family:var(--display);font-size:1.4rem;color:var(--accent);margin-bottom:0.4rem;">02</div>
+        <strong style="font-size:0.88rem;">BRDF Normalization</strong>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;line-height:1.6;">Corrects for sun angle differences. Photos at different times of day now have consistent brightness.</p>
+      </div>
+      <div style="padding:1rem;background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.1);border-radius:8px;">
+        <div style="font-family:var(--display);font-size:1.4rem;color:var(--accent);margin-bottom:0.4rem;">03</div>
+        <strong style="font-size:0.88rem;">Spatial Co-registration</strong>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;line-height:1.6;">Aligns both satellite images to the exact same coordinate grid. Pixels correspond to the same ground location.</p>
+      </div>
+      <div style="padding:1rem;background:rgba(0,200,255,0.05);border:1px solid rgba(0,200,255,0.1);border-radius:8px;">
+        <div style="font-family:var(--display);font-size:1.4rem;color:var(--accent);margin-bottom:0.4rem;">04</div>
+        <strong style="font-size:0.88rem;">Band Matching</strong>
+        <p style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;line-height:1.6;">Maps equivalent spectral bands between sensors. Landsat Red ≈ Sentinel Red after this correction.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transfer Learning -->
+  <div class="card" style="margin-bottom:2rem;">
+    <div class="card-title">Transfer Learning — Why Not Train From Scratch?</div>
+    <div class="grid2">
+      <div>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.75;margin-bottom:1rem;">SwinIR was originally trained on natural photographs (cats, buildings, landscapes). The paper freezes the first 3 of 6 transformer blocks and only fine-tunes the last 3 on satellite data.</p>
+        <div style="display:flex;gap:0;margin-bottom:0.75rem;">
+          <div style="flex:1;padding:0.75rem;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.2);border-radius:6px 0 0 6px;text-align:center;">
+            <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);">BLOCKS 1-3</div>
+            <div style="font-size:0.82rem;margin-top:0.25rem;">🔒 Frozen</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;">Edges, textures</div>
+          </div>
+          <div style="flex:1;padding:0.75rem;background:rgba(255,190,0,0.08);border:1px solid rgba(255,190,0,0.2);border-radius:0 6px 6px 0;text-align:center;">
+            <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);">BLOCKS 4-6</div>
+            <div style="font-size:0.82rem;margin-top:0.25rem;">🔓 Fine-tuned</div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;">Satellite-specific</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <strong>Analogy:</strong> Like hiring someone who already knows how to read — you don't reteach reading, you just train them for your specific domain. Natural images and satellite images both have edges and textures. The early layers already know this. Only the later layers need to adapt.
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.6;margin-top:0.75rem;">Benefits: Less training time, less data needed, prevents overfitting on small satellite datasets.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conclusion -->
+  <div class="card" style="border-color:rgba(0,200,255,0.3);background:rgba(0,200,255,0.04);">
+    <div class="card-title">Paper Contributions — Summary</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+      <div style="display:flex;gap:0.75rem;">
+        <span style="font-size:1.5rem;">①</span>
+        <div>
+          <strong style="font-size:0.9rem;">Preliminary SR System</strong>
+          <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;line-height:1.6;">First framework to align and super-resolve HLS30 to HLS10 using real heterogeneous sensor data (not artificial degradation).</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <span style="font-size:1.5rem;">②</span>
+        <div>
+          <strong style="font-size:0.9rem;">HM + FDM Preprocessing</strong>
+          <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;line-height:1.6;">Proved that color correction before SR3 is essential — transforming a broken pipeline into a working one.</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <span style="font-size:1.5rem;">③</span>
+        <div>
+          <strong style="font-size:0.9rem;">Custom HLS Dataset</strong>
+          <p style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem;line-height:1.6;">18 terrain regions, 6 spectral bands, surface reflectance values — enabling real geoscience applications beyond simple RGB.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<div style="text-align:center;padding:3rem 2rem;border-top:1px solid var(--border);font-family:var(--mono);font-size:0.65rem;color:var(--muted);">
+  <div style="margin-bottom:0.5rem;font-family:var(--display);font-size:1.5rem;color:var(--accent);letter-spacing:3px;">SAT-SR EXPLAINER</div>
+  Based on "Towards High-Resolution Alignment and Super-Resolution of Multi-Sensor Satellite Imagery" (2025) · NASA &amp; Penn State
+</div>
+
+<!-- ─────────────────────────────── -->
+<!-- JAVASCRIPT                     -->
+<!-- ─────────────────────────────── -->
+<script>
+// ── STARFIELD ──
+(function(){
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let W,H,stars=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  function mkStars(){stars=[];for(let i=0;i<220;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2,a:Math.random(),s:Math.random()*0.5+0.5});}
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    stars.forEach(s=>{
+      s.a+=0.005*s.s;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,200,255,${0.3+0.7*Math.abs(Math.sin(s.a))})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize();mkStars();draw();
+  window.addEventListener('resize',()=>{resize();mkStars();});
+})();
+
+// ── FADE IN ON SCROLL ──
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:0.1});
+document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+
+// ── PIXEL SIMULATION CANVASES ──
+function drawPixelSim(canvasId, pixelSize, sharp){
+  const c=document.getElementById(canvasId),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  // Generate pseudo-landscape
+  ctx.clearRect(0,0,W,H);
+  const cols=['#2a5f2a','#3a7a3a','#4f9f4f','#5fb55f','#7fd07f','#1a3f1a','#3d6e3d'];
+  const water='#1a4a7a';const urban='#5a5a6a';const road='#3a3a4a';
+  // Draw at 1px then scale
+  const tmp=document.createElement('canvas');tmp.width=tmp.height=60;
+  const tc=tmp.getContext('2d');
+  for(let y=0;y<60;y++)for(let x=0;x<60;x++){
+    let c2;
+    if(y>30&&y<35)c2=water;
+    else if(x>25&&x<30)c2=road;
+    else if(x>40&&x<55&&y>10&&y<25)c2=urban;
+    else c2=cols[Math.floor((Math.sin(x*0.3+y*0.2)+Math.cos(x*0.1-y*0.15))*3+3)%cols.length];
+    tc.fillStyle=c2;tc.fillRect(x,y,1,1);
+  }
+  if(sharp){
+    ctx.drawImage(tmp,0,0,W,H);
+  } else {
+    // Pixelate
+    const ps=pixelSize;
+    ctx.imageSmoothingEnabled=false;
+    const s=Math.floor(60/ps);
+    const tmp2=document.createElement('canvas');tmp2.width=tmp2.height=s;
+    const tc2=tmp2.getContext('2d');
+    tc2.drawImage(tmp,0,0,s,s);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(tmp2,0,0,W,H);
+  }
+}
+drawPixelSim('lr-sim',5,false);
+drawPixelSim('hr-sim',1,true);
+
+// ── RESOLUTION SLIDER ──
+const resSlider=document.getElementById('res-slider');
+const resVal=document.getElementById('res-val');
+const resInterp=document.getElementById('res-interpretation');
+function drawResCanvas(){
+  const v=parseInt(resSlider.value);
+  resVal.textContent=v+'m';
+  const c=document.getElementById('res-canvas'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  // Left: pixelated, Right: sharp
+  const half=W/2-10;
+  // Draw sharp source
+  const sharp=document.createElement('canvas');sharp.width=sharp.height=200;
+  const sc=sharp.getContext('2d');
+  const cols2=['#2a5f2a','#3a7a3a','#4f9f4f','#1a4a7a','#5a5a6a','#1a3f1a','#7fd07f'];
+  for(let y=0;y<200;y++)for(let x=0;x<200;x++){
+    let cl;
+    if(y>80&&y<100)cl='#1a4a7a';
+    else if(x>70&&x<78)cl='#3a3a4a';
+    else if(x>120&&x<160&&y>30&&y<70)cl='#5a5a6a';
+    else cl=cols2[Math.floor((Math.sin(x*0.2+y*0.15)*2+Math.cos(x*0.08-y*0.1)*2+4)%cols2.length)];
+    sc.fillStyle=cl;sc.fillRect(x,y,1,1);
+  }
+  // Draw pixelated version
+  const pixelBlocks=Math.max(1,Math.round(200/v*2));
+  const tmp3=document.createElement('canvas');tmp3.width=tmp3.height=pixelBlocks;
+  const tc3=tmp3.getContext('2d');tc3.drawImage(sharp,0,0,pixelBlocks,pixelBlocks);
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(tmp3,20,10,half-40,H-20);
+  // Label
+  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(20,10,half-40,24);
+  ctx.fillStyle='#ff6b35';ctx.font='bold 12px Space Mono,monospace';
+  ctx.fillText('Landsat: '+v+'m/pixel',26,26);
+  // Right: sharp
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(sharp,half+40,10,half-40,H-20);
+  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(half+40,10,half-40,24);
+  ctx.fillStyle='#7fff6e';ctx.font='bold 12px Space Mono,monospace';
+  ctx.fillText('Sentinel-2: 10m/pixel',half+46,26);
+  // Center line
+  ctx.strokeStyle='rgba(0,200,255,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.setLineDash([]);
+
+  // Interpretation
+  const msgs={
+    1:'At 1m, you can see individual trees, cars, and people.',
+    5:'At 5m, building outlines and road lanes are clear.',
+    10:'At 10m (Sentinel), fields, roads, and buildings are visible. This is the target quality.',
+    20:'At 20m, buildings merge into blocks. Small roads disappear.',
+    30:'At 30m (Landsat), city blocks are blobs. Forests are green patches. This is the starting quality.',
+  };
+  const closest=Object.keys(msgs).sort((a,b)=>Math.abs(a-v)-Math.abs(b-v))[0];
+  resInterp.textContent='📍 '+msgs[closest];
+}
+resSlider.addEventListener('input',drawResCanvas);
+drawResCanvas();
+
+// ── HISTOGRAM MATCHING DEMO ──
+function gaussianRand(mean,std){
+  let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();
+  return mean+std*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function generateHist(mean,std,bins){
+  const h=new Array(bins).fill(0);
+  for(let i=0;i<2000;i++){
+    const v=Math.round(gaussianRand(mean,std));
+    if(v>=0&&v<bins)h[v]++;
+  }return h;
+}
+function renderHistBars(containerId,hist,color){
+  const el=document.getElementById(containerId);if(!el)return;
+  el.innerHTML='';
+  const max=Math.max(...hist,1);
+  hist.forEach(v=>{
+    const b=document.createElement('div');
+    b.className='hist-bar';
+    b.style.height=(v/max*75+2)+'px';
+    b.style.background=color;
+    b.style.opacity='0.85';
+    el.appendChild(b);
+  });
+}
+// Reference histogram (fixed — Sentinel "personality")
+const refMean=140,refStd=35;
+const refHist=generateHist(refMean,refStd,20);
+renderHistBars('hm-ref-hist',refHist,'var(--accent)');
+function updateHMDemo(){
+  const bias=parseInt(document.getElementById('hm-bias').value);
+  const contrast=parseInt(document.getElementById('hm-contrast').value);
+  document.getElementById('hm-bias-val').textContent=bias<0?'Dark':bias>0?'Bright':'Neutral';
+  document.getElementById('hm-contrast-val').textContent=contrast<50?'Low':contrast>80?'High':'Medium';
+  const srcMean=100+bias;const srcStd=contrast*0.4;
+  const srcHist=generateHist(srcMean,srcStd,20);
+  renderHistBars('hm-src-hist',srcHist,'var(--accent2)');
+  // Simulate matched hist (shift toward ref)
+  const matchedMean=(srcMean+refMean)/2+20;const matchedStd=(srcStd+refStd)/2;
+  const matchedHist=generateHist(matchedMean,matchedStd,20);
+  renderHistBars('hm-out-hist',matchedHist,'var(--accent3)');
+  // Draw canvas
+  drawHMCanvas(srcMean,srcStd,matchedMean,matchedStd);
+}
+function drawHMCanvas(sm,ss,mm,ms){
+  const c=document.getElementById('hm-canvas'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(0,0,W,H);
+  // Draw smooth curves
+  function drawCurve(mean,std,color,label){
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;
+    for(let x=0;x<W;x++){
+      const val=(x/W)*255;
+      const y=H-H*0.8*Math.exp(-0.5*Math.pow((val-mean)/std,2));
+      if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // Label
+    const px=(mean/255)*W;
+    ctx.fillStyle=color;ctx.font='11px Space Mono,monospace';
+    ctx.fillText(label,Math.min(Math.max(px-20,4),W-80),18);
+  }
+  drawCurve(100+parseInt(document.getElementById('hm-bias').value),parseInt(document.getElementById('hm-contrast').value)*0.4,'#ff6b35','SOURCE');
+  drawCurve(mm,ms,'#7fff6e','MATCHED');
+  drawCurve(140,35,'#00c8ff','REFERENCE');
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+  for(let y=H/4;y<H;y+=H/4){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font='10px Space Mono,monospace';
+  ctx.fillText('Dark →',4,H-4);ctx.fillText('← Bright',W-70,H-4);
+}
+document.getElementById('hm-bias').addEventListener('input',updateHMDemo);
+document.getElementById('hm-contrast').addEventListener('input',updateHMDemo);
+updateHMDemo();
+
+// ── FDM CANVAS ──
+function drawFDMCanvas(){
+  const r=parseInt(document.getElementById('fdm-r').value);
+  const g=parseInt(document.getElementById('fdm-g').value);
+  const b=parseInt(document.getElementById('fdm-b').value);
+  document.getElementById('fdm-r-val').textContent=r;
+  document.getElementById('fdm-g-val').textContent=g;
+  document.getElementById('fdm-b-val').textContent=b;
+  const c=document.getElementById('fdm-canvas'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  const refR=160,refG=140,refB=120;
+  // FDM transfers mean: interpolate between src and ref
+  const fdmR=Math.round(r*0.3+refR*0.7);
+  const fdmG=Math.round(g*0.3+refG*0.7);
+  const fdmB=Math.round(b*0.3+refB*0.7);
+  const sw=W/3-20;
+  function drawSwatch(x,R,G,B,label,sublabel){
+    // Draw gradient swatch
+    const grad=ctx.createLinearGradient(x,0,x+sw,H);
+    grad.addColorStop(0,`rgb(${Math.max(R-30,0)},${Math.max(G-30,0)},${Math.max(B-30,0)})`);
+    grad.addColorStop(0.5,`rgb(${R},${G},${B})`);
+    grad.addColorStop(1,`rgb(${Math.min(R+30,255)},${Math.min(G+30,255)},${Math.min(B+30,255)})`);
+    ctx.fillStyle=grad;ctx.beginPath();ctx.roundRect(x,10,sw,H-20,8);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(x,H-44,sw,34);
+    ctx.fillStyle='white';ctx.font='bold 13px Space Mono,monospace';
+    ctx.textAlign='center';ctx.fillText(label,x+sw/2,H-28);
+    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='10px Space Mono,monospace';
+    ctx.fillText(sublabel,x+sw/2,H-14);ctx.textAlign='left';
+  }
+  drawSwatch(10,r,g,b,'SOURCE',`R:${r} G:${g} B:${b}`);
+  // Arrow
+  ctx.fillStyle='rgba(0,200,255,0.6)';ctx.font='20px sans-serif';ctx.textAlign='center';
+  ctx.fillText('→',sw+20,H/2);
+  drawSwatch(sw+30,fdmR,fdmG,fdmB,'FDM OUTPUT',`R:${fdmR} G:${fdmG} B:${fdmB}`);
+  ctx.fillText('→',2*sw+40,H/2);
+  drawSwatch(2*sw+50,refR,refG,refB,'REFERENCE',`R:${refR} G:${refG} B:${refB}`);
+  ctx.textAlign='left';
+}
+['fdm-r','fdm-g','fdm-b'].forEach(id=>document.getElementById(id).addEventListener('input',drawFDMCanvas));
+drawFDMCanvas();
+
+// ── PIPELINE STAGE EXPLAINER ──
+const stageInfo=[
+  {title:'① HLS30 Input — Landsat Low Resolution',html:`
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <strong style="display:block;margin-bottom:0.5rem;color:var(--accent);">What enters the pipeline:</strong>
+        <ul style="list-style:disc;padding-left:1.5rem;color:var(--muted);font-size:0.85rem;line-height:1.8;">
+          <li>128×128 pixel patches</li>
+          <li>30 meters per pixel resolution</li>
+          <li>Blurry — one pixel = a 30m×30m area of land</li>
+          <li>Surface reflectance values (0–1 range)</li>
+        </ul>
+      </div>
+      <div class="callout" style="flex:1;min-width:200px;">Think of this as the <strong>blurry old photo</strong> you found in a drawer. Your goal is to make it as sharp as a modern camera would take.</div>
+    </div>`},
+  {title:'② SwinIR — Vision Transformer Upscaling',html:`
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <strong style="display:block;margin-bottom:0.5rem;color:var(--accent);">What it does:</strong>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.7;">Takes 128×128 → outputs 384×384. Uses <strong style="color:var(--text);">Swin Transformer</strong> — an AI that looks at the whole image using overlapping windows to understand context. Trained first on natural images, then fine-tuned on satellite data (transfer learning).</p>
+        <div style="margin-top:0.75rem;font-family:var(--mono);font-size:0.72rem;color:var(--muted);">upscale=3× | window_size=8 | 6 RSTBs</div>
+      </div>
+      <div class="callout" style="flex:1;min-width:200px;"><strong>Limitation:</strong> SwinIR makes the image bigger but doesn't fix the color mismatch between Landsat and Sentinel sensors. That's why the output still has wrong colors.</div>
+    </div>`},
+  {title:'③ HM / FDM — Color Correction Preprocessing',html:`
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <strong style="display:block;margin-bottom:0.5rem;color:var(--accent);">Two methods available:</strong>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.7;margin-bottom:0.75rem;"><strong style="color:var(--text);">HM:</strong> Redistributes pixel brightness values to match reference histogram. Best SSIM.</p>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.7;"><strong style="color:var(--text);">FDM:</strong> Transfers mean and covariance of color across all channels simultaneously. Best PSNR and LPIPS.</p>
+      </div>
+      <div class="callout warn" style="flex:1;min-width:200px;"><strong>Critical step!</strong> Without this, SR3 collapses to SSIM=0.13. With HM applied, SR3 achieves SSIM=0.62. This preprocessing is what makes the whole pipeline work.</div>
+    </div>`},
+  {title:'④ SR3 — Diffusion Model Fine Detail Refinement',html:`
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <strong style="display:block;margin-bottom:0.5rem;color:var(--accent);">The denoising process:</strong>
+        <p style="font-size:0.85rem;color:var(--muted);line-height:1.7;">Runs 2000 denoising steps. At each step, removes a tiny amount of noise guided by the HM-corrected image. Gradually reveals photorealistic fine details that weren't in the original blurry image.</p>
+        <div style="margin-top:0.75rem;font-family:var(--mono);font-size:0.72rem;color:var(--muted);">Training: 300,000 iterations | Batch size: 8</div>
+      </div>
+      <div class="callout good" style="flex:1;min-width:200px;"><strong>Why SR3 > simple sharpening:</strong> A sharpening filter can only enhance existing pixels. SR3 <em>generates</em> new realistic detail based on patterns learned from thousands of sharp satellite images.</div>
+    </div>`},
+  {title:'⑤ Final Output — HLS10 Quality',html:`
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <strong style="display:block;margin-bottom:0.5rem;color:var(--accent);">What exits the pipeline:</strong>
+        <ul style="list-style:disc;padding-left:1.5rem;color:var(--muted);font-size:0.85rem;line-height:1.8;">
+          <li>384×384 pixel patches</li>
+          <li>Sentinel-2 quality (10m/pixel equivalent)</li>
+          <li>Accurate surface reflectance values</li>
+          <li>Ready for downstream geoscience tasks</li>
+        </ul>
+      </div>
+      <div class="callout good" style="flex:1;min-width:200px;"><strong>Best result (HM+SR3):</strong> SSIM=0.618, PSNR=27.4 dB, LPIPS=0.223 — a dramatic improvement from the baseline SSIM=0.13 when SR3 runs without preprocessing.</div>
+    </div>`}
+];
+function showStage(i){
+  document.getElementById('stage-detail').innerHTML=`<div><strong style="color:var(--accent);font-family:var(--mono);font-size:0.72rem;letter-spacing:2px;">${stageInfo[i].title}</strong><div style="margin-top:1rem;">${stageInfo[i].html}</div></div>`;
+}
+showStage(1);
+
+// ── DIFFUSION ANIMATION ──
+let diffAnim=null,diffStep=0,diffDir=1;
+function getDiffCanvas(){return{c:document.getElementById('diff-canvas'),ctx:document.getElementById('diff-canvas').getContext('2d')};}
+function renderDiffFrame(step){
+  const {c,ctx}=getDiffCanvas();
+  const W=c.width,H=c.height;
+  const t=step/2000;
+  ctx.clearRect(0,0,W,H);
+  // Generate base "satellite" image
+  const sections=[
+    {x:0,y:0,w:0.3,h:0.5,color:'#2a5f2a'},{x:0,y:0.5,w:0.3,h:0.5,color:'#3a7a3a'},
+    {x:0.3,y:0,w:0.4,h:1,color:'#1a4a7a'},{x:0.7,y:0,w:0.3,h:0.5,color:'#5a5a6a'},
+    {x:0.7,y:0.5,w:0.3,h:0.5,color:'#4f9f4f'}
+  ];
+  // Draw blurry guide (leftmost 150px)
+  const guideW=150;
+  sections.forEach(s=>{
+    ctx.fillStyle=s.color;
+    ctx.fillRect(s.x*guideW,s.y*H,s.w*guideW,s.h*H);
+  });
+  // Blur guide slightly
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(0,0,guideW,H);
+  ctx.fillStyle='rgba(255,255,255,0.05)';ctx.fillRect(0,0,guideW,H);
+  ctx.strokeStyle='rgba(0,200,255,0.4)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(guideW,0);ctx.lineTo(guideW,H);ctx.stroke();
+  ctx.fillStyle='rgba(0,200,255,0.7)';ctx.font='10px Space Mono,monospace';
+  ctx.fillText('BLURRY GUIDE',4,14);
+
+  // Main denoising panel
+  const panelX=guideW+20;const panelW=W-panelX-20;
+  // Base image
+  sections.forEach(s=>{
+    ctx.fillStyle=s.color;
+    ctx.fillRect(panelX+s.x*panelW,s.y*H,s.w*panelW,s.h*H);
+  });
+  // Add noise overlay based on step
+  const noiseLevel=t;
+  if(noiseLevel>0.01){
+    const imageData=ctx.getImageData(panelX,0,panelW,H);
+    const data=imageData.data;
+    for(let i=0;i<data.length;i+=4){
+      const n=(Math.random()-0.5)*2*noiseLevel*255;
+      data[i]=Math.max(0,Math.min(255,data[i]+n));
+      data[i+1]=Math.max(0,Math.min(255,data[i+1]+n));
+      data[i+2]=Math.max(0,Math.min(255,data[i+2]+n));
+    }
+    ctx.putImageData(imageData,panelX,0);
+  }
+  // Overlay darkening at high noise
+  if(noiseLevel>0.5){
+    ctx.fillStyle=`rgba(30,30,40,${(noiseLevel-0.5)*0.8})`;ctx.fillRect(panelX,0,panelW,H);
+    // Static dots
+    for(let i=0;i<(noiseLevel-0.5)*2000;i++){
+      ctx.fillStyle=`rgba(${Math.random()*255|0},${Math.random()*255|0},${Math.random()*255|0},0.4)`;
+      ctx.fillRect(panelX+Math.random()*panelW|0,Math.random()*H|0,2,2);
+    }
+  }
+  // Status
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(panelX,H-28,panelW,28);
+  ctx.fillStyle= step===0?'#7fff6e':t>0.5?'#ff6b35':'#00c8ff';
+  ctx.font='11px Space Mono,monospace';
+  const label=diffDir===1?`ADDING NOISE — Step ${step}/2000`:`DENOISING — Step ${2000-step}/2000 remaining`;
+  ctx.fillText(step===0?'SHARP ORIGINAL IMAGE (Step 0)':label,panelX+8,H-10);
+  // Progress bar
+  ctx.fillStyle='rgba(0,200,255,0.2)';ctx.fillRect(panelX,0,panelW,4);
+  ctx.fillStyle=t>0.5?'#ff6b35':'#00c8ff';ctx.fillRect(panelX,0,panelW*t,4);
+
+  document.getElementById('diff-progress').style.width=(t*100)+'%';
+  document.getElementById('diff-step').textContent=`${step}/2000`;
+}
+renderDiffFrame(0);
+function runForwardDiffusion(){
+  if(diffAnim)clearInterval(diffAnim);
+  diffDir=1;diffStep=0;
+  diffAnim=setInterval(()=>{diffStep+=20;if(diffStep>2000){diffStep=2000;clearInterval(diffAnim);}renderDiffFrame(diffStep);},30);
+}
+function runReverseDiffusion(){
+  if(diffAnim)clearInterval(diffAnim);
+  if(diffStep<10)diffStep=2000;
+  diffDir=-1;
+  diffAnim=setInterval(()=>{diffStep-=20;if(diffStep<0){diffStep=0;clearInterval(diffAnim);}renderDiffFrame(diffStep);},30);
+}
+function resetDiffusion(){if(diffAnim)clearInterval(diffAnim);diffStep=0;renderDiffFrame(0);}
+
+// ── METRICS ──
+function updatePSNR(){
+  const err=parseInt(document.getElementById('psnr-err').value);
+  const mse=err*err;const psnr=mse===0?100:10*Math.log10(255*255/mse);
+  const psnrEl=document.getElementById('psnr-score');
+  psnrEl.textContent=psnr>=99?'∞':psnr.toFixed(1)+' dB';
+  const pct=Math.min(psnr/50,1);
+  document.getElementById('psnr-meter').style.width=(pct*100)+'%';
+  let interp='';let col='';
+  if(psnr>=40){interp='✅ EXCELLENT';col='var(--accent3)';}
+  else if(psnr>=30){interp='✅ GOOD';col='var(--accent)';}
+  else if(psnr>=20){interp='⚠️ ACCEPTABLE';col='var(--accent4)';}
+  else{interp='❌ POOR';col='var(--accent2)';}
+  psnrEl.style.color=col;
+  document.getElementById('psnr-interp').textContent=interp;
+}
+document.getElementById('psnr-err').addEventListener('input',updatePSNR);
+updatePSNR();
+
+function updateSSIM(){
+  const blur=parseInt(document.getElementById('ssim-blur').value);
+  const ssim=Math.max(0,1-blur*0.047).toFixed(3);
+  const ssimEl=document.getElementById('ssim-score');ssimEl.textContent=ssim;
+  document.getElementById('ssim-meter').style.width=(ssim*100)+'%';
+  let interp='';let col='';
+  if(ssim>=0.9){interp='✅ EXCELLENT';col='var(--accent3)';}
+  else if(ssim>=0.7){interp='✅ GOOD';col='var(--accent)';}
+  else if(ssim>=0.5){interp='⚠️ MODERATE';col='var(--accent4)';}
+  else{interp='❌ LOW';col='var(--accent2)';}
+  ssimEl.style.color=col;
+  document.getElementById('ssim-interp').textContent=interp;
+  // Draw blurred demo
+  const c=document.getElementById('ssim-canvas'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#2a5f2a';ctx.fillRect(0,0,W*0.4,H*0.6);
+  ctx.fillStyle='#1a4a7a';ctx.fillRect(W*0.4,0,W*0.6,H*0.4);
+  ctx.fillStyle='#5a5a6a';ctx.fillRect(W*0.4,H*0.4,W*0.6,H*0.6);
+  ctx.fillStyle='#3a3a4a';ctx.fillRect(W*0.35,0,8,H);
+  if(blur>0){ctx.filter=`blur(${blur*0.4}px)`;ctx.drawImage(c,0,0);ctx.filter='none';}
+}
+document.getElementById('ssim-blur').addEventListener('input',updateSSIM);
+updateSSIM();
+
+function updateLPIPS(){
+  const art=parseInt(document.getElementById('lpips-art').value);
+  const lpips=(art/100*0.8).toFixed(3);
+  const lpipsEl=document.getElementById('lpips-score');lpipsEl.textContent=lpips;
+  document.getElementById('lpips-meter').style.width=(art*0.8)+'%';
+  let interp='';let col='';
+  if(art<15){interp='✅ EXCELLENT';col='var(--accent3)';}
+  else if(art<35){interp='✅ GOOD';col='var(--accent)';}
+  else if(art<60){interp='⚠️ NOTICEABLE';col='var(--accent4)';}
+  else{interp='❌ POOR';col='var(--accent2)';}
+  lpipsEl.style.color=col;
+  document.getElementById('lpips-interp').textContent=interp;
+}
+document.getElementById('lpips-art').addEventListener('input',updateLPIPS);
+updateLPIPS();
+
+// ── RESULTS CHARTS ──
+function drawChart1(){
+  const c=document.getElementById('chart1'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+  const data=[
+    {label:'SwinIR Only',ssim:0.5277,psnr:19.19,lpips:0.2868,color:'#6a8faa'},
+    {label:'SwinIR+FDM',ssim:0.6330,psnr:28.94,lpips:0.2020,color:'#00c8ff'},
+    {label:'SwinIR+HM',ssim:0.6639,psnr:28.86,lpips:0.2152,color:'#7fff6e'},
+  ];
+  const bw=60,gap=40,groupGap=80;const startX=60;
+  data.forEach((d,i)=>{
+    const x=startX+i*(bw+groupGap);
+    // SSIM bar
+    const ssimH=d.ssim/0.8*H*0.7;
+    ctx.fillStyle=d.color;ctx.globalAlpha=0.85;
+    ctx.fillRect(x,H-ssimH-30,bw,ssimH);ctx.globalAlpha=1;
+    // Value label
+    ctx.fillStyle=d.color;ctx.font='bold 11px Space Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(d.ssim.toFixed(3),x+bw/2,H-ssimH-35);
+    // Name label
+    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='9px Space Mono,monospace';
+    ctx.fillText(d.label,x+bw/2,H-12);ctx.textAlign='left';
+  });
+  ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font='11px Space Mono,monospace';
+  ctx.fillText('SSIM ↑ (higher is better)',10,20);
+}
+setTimeout(drawChart1,100);
+
+let currentMetric='ssim';
+const chartData={
+  ssim:{
+    label:'SSIM ↑ (higher = better)',
+    methods:['SR3 only','FDM+SR3','HM+SR3'],
+    values:[0.1276,0.5268,0.6181],
+    colors:['#ff6b35','#00c8ff','#7fff6e'],
+    max:0.8,note:'HM+SR3 wins SSIM'
+  },
+  psnr:{
+    label:'PSNR dB ↑ (higher = better)',
+    methods:['SR3 only','FDM+SR3','HM+SR3'],
+    values:[10.81,27.68,27.42],
+    colors:['#ff6b35','#00c8ff','#7fff6e'],
+    max:35,note:'FDM+SR3 wins PSNR'
+  },
+  lpips:{
+    label:'LPIPS ↓ (lower = better)',
+    methods:['SR3 only','FDM+SR3','HM+SR3'],
+    values:[0.5218,0.2359,0.2232],
+    colors:['#ff6b35','#00c8ff','#7fff6e'],
+    max:0.7,note:'HM+SR3 wins LPIPS'
+  }
+};
+function drawCompareChart(){
+  const c=document.getElementById('chart-compare'),ctx=c.getContext('2d');
+  const W=c.width,H=c.height;ctx.clearRect(0,0,W,H);
+  const d=chartData[currentMetric];
+  const bw=80,gap=60;const startX=80;
+  const isLower=currentMetric==='lpips';
+  // Grid lines
+  for(let y=0;y<=4;y++){
+    const py=H-40-(y/4)*(H-80);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(40,py);ctx.lineTo(W-20,py);ctx.stroke();
+    const val=(y/4*d.max).toFixed(2);
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='9px Space Mono,monospace';
+    ctx.fillText(val,4,py+4);
+  }
+  d.values.forEach((v,i)=>{
+    const x=startX+i*(bw+gap);
+    const h=(v/d.max)*(H-80);
+    const py=H-40-h;
+    // Best indicator
+    const isBest=isLower?v===Math.min(...d.values):v===Math.max(...d.values);
+    ctx.fillStyle=d.colors[i];ctx.globalAlpha=isBest?1:0.6;
+    ctx.beginPath();ctx.roundRect(x,py,bw,h,4);ctx.fill();ctx.globalAlpha=1;
+    if(isBest){
+      ctx.strokeStyle=d.colors[i];ctx.lineWidth=2;ctx.setLineDash([]);
+      ctx.strokeRect(x-2,py-2,bw+4,h+4);
+      ctx.fillStyle=d.colors[i];ctx.font='bold 10px Space Mono,monospace';ctx.textAlign='center';
+      ctx.fillText('★ BEST',x+bw/2,py-8);
+    }
+    ctx.fillStyle='white';ctx.font='bold 12px Space Mono,monospace';ctx.textAlign='center';
+    ctx.fillText(v.toFixed(isLower?4:2),x+bw/2,Math.max(py-14,14));
+    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='10px Space Mono,monospace';
+    ctx.fillText(d.methods[i],x+bw/2,H-22);
+    ctx.textAlign='left';
+  });
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='11px Space Mono,monospace';
+  ctx.fillText(d.label+' — '+d.note,10,20);
+  // Legend
+  const leg=document.getElementById('chart-legend');leg.innerHTML='';
+  d.methods.forEach((m,i)=>{
+    const s=document.createElement('span');
+    s.style.cssText=`color:${d.colors[i]};`;
+    s.innerHTML=`<span style="display:inline-block;width:10px;height:10px;background:${d.colors[i]};border-radius:2px;margin-right:4px;"></span>${m}`;
+    leg.appendChild(s);
+  });
+}
+function setMetric(m){
+  currentMetric=m;
+  ['ssim','psnr','lpips'].forEach(k=>{
+    const btn=document.getElementById('btn-'+k);
+    btn.style.borderColor=k===m?'var(--accent)':'rgba(0,200,255,0.3)';
+    btn.style.background=k===m?'rgba(0,200,255,0.15)':'transparent';
+  });
+  drawCompareChart();
+}
+setTimeout(()=>setMetric('ssim'),200);
+</script>
+</body>
+</html>
